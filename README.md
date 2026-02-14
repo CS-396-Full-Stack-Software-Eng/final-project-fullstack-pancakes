@@ -6,6 +6,7 @@
 ## Tech Stack
 
 **Frontend:** default Next.js project settings
+
 - React
 - TypeScript
 - Tailwind
@@ -14,18 +15,21 @@
 - Turbopack
 
 Backend:
-- Server: Springboot 
+
+- Server: Springboot
 - Database: Postgres with Supabase
 - Message Queue: Redis
 
 ## System Requirements
 
 Frontend:
+
 - Node.js v20.15.0
 - Next.js v16.1.6
 - React v19.2.3
 
 Backend:
+
 - Java v25.0.2
 - Maven v14.6.1
 - Springboot v4.1.0-M1
@@ -34,21 +38,23 @@ Backend:
   - Spring for GraphQL
   - PostgreSQL Driver
   - Spring Data JPA
-- Postgres 
-- Redis 
+- Postgres
+- Redis
 
 Read more about frontend dependencies [here](./frontend/package-lock.json) and backend dependencies [here](./backend/pom.xml).
 
 ## Installation Instructions
 
-frontend: 
+frontend:
+
 - cd frontend
 - npm i
 - eventually, need to set up API keys i imagine too with local env file
 
 backend set up:
+
 - need to make sure meet some system requs first
-  - make sure you have java 25 installed 
+  - make sure you have java 25 installed
     - you can download it here: https://www.oracle.com/java/technologies/downloads/#jdk25-mac
     - you can check with `java -version`
   - make sure you have maven installed (it'll be our dependnecy manager, think of it like npm but for our backend)
@@ -61,12 +67,18 @@ backend set up:
 - cd backend
 
 run the database:
+
 - FOLLOW THIS WHOLE TUTORIAL (MULTIPLE COMMANDS) https://medium.com/@ianktoo/my-first-time-setting-up-supabase-locally-and-why-it-almost-broke-me-the-quick-version-a17bab7ca1b0
 
+- Configure your local environment variables (EXPORT DB_USERNAME=XXX, DB_PASSWORD=XXX, DB_URL=XXX) on your terminal.
+- Run `echo DB_URL` to make sure it's been set.
+
 run the server:
+
 - `mvn spring-boot:run`
 
 - go to http://localhost:8000/graphiql?path=/graphql and type in the following query
+
 ```
 query {
   getSessionById(id: 1) {
@@ -82,6 +94,7 @@ note to self: add team to supabase settings and set up local .env
 ## References
 
 ### Setup & Installation
+
 Next.js Project Creation: https://nextjs.org/docs/app/getting-started/installation
 Springboot Project Creation: https://start.spring.io/
 Connecting Springboot and Postgres: https://medium.com/@AlexanderObregon/using-spring-boot-with-postgresql-for-data-persistence-49e843ab46fc
@@ -90,15 +103,18 @@ Creating Supabase tables: https://supabase.com/docs/guides/local-development/ove
 Connecting to database: https://supabase.com/docs/guides/database/connecting-to-postgres
 Getting Started with Spring Boot and PostgreSQL: https://dev.to/codereacher_20b8a/getting-started-with-spring-boot-and-postgresql-a-beginner-friendly-guide-2mhb
 
-### GraphQL 
+### GraphQL
+
 Building a GraphQL service: https://spring.io/guides/gs/graphql-server
 Class Notes App: https://github.com/CS-396-Full-Stack-Software-Eng/notes_app/blob/w6_eda_notes_summary_grpc/backend_spring/src/main/java/com/notes/app/data/Note.java
 Using Spring Boot with PostgreSQL for Data Persistence: https://medium.com/@AlexanderObregon/using-spring-boot-with-postgresql-for-data-persistence-49e843ab46fc
 
 ### General Documentation
+
 Springboot: https://docs.spring.io/spring-boot/index.html
 
 ## Contributors (AKA "Team Pancakes")
+
 Brock Brown\
 Vivian Chen\
 Samreen Ibrahim\
