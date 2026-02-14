@@ -14,7 +14,7 @@
 - App Router
 - Turbopack
 
-Backend:
+**Backend:**
 
 - Server: Springboot
 - Database: Postgres with Supabase
@@ -22,13 +22,13 @@ Backend:
 
 ## System Requirements
 
-Frontend:
+**Frontend:**
 
 - Node.js v20.15.0
 - Next.js v16.1.6
 - React v19.2.3
 
-Backend:
+**Backend:**
 
 - Java v25.0.2
 - Maven v14.6.1
@@ -38,47 +38,45 @@ Backend:
   - Spring for GraphQL
   - PostgreSQL Driver
   - Spring Data JPA
+  - Spring Web
+  - Spring Reactive Web
 - Postgres
 - Redis
 
 Read more about frontend dependencies [here](./frontend/package-lock.json) and backend dependencies [here](./backend/pom.xml).
 
-## Installation Instructions
+## Installation and Local Development Instructions
 
-frontend:
+### Frontend
 
-- cd frontend
-- npm i
-- eventually, need to set up API keys i imagine too with local env file
+When running the frontend for the first time, you'll first want to navigate to the `frontend` directory by doing `cd frontend` and then executing `npm i` in your terminal to install all dependencies.
 
-backend set up:
+Otherwise, all you need to do to view the frontend locally is to run `npm run dev` within the `frontend` directory. The frontend will then be visible at http://localhost:3000/. To stop running the frontend, you can simply use the `CTRL + C` shortcut in the terminal running it.
 
-- need to make sure meet some system requs first
-  - make sure you have java 25 installed
-    - you can download it here: https://www.oracle.com/java/technologies/downloads/#jdk25-mac
-    - you can check with `java -version`
-  - make sure you have maven installed (it'll be our dependnecy manager, think of it like npm but for our backend)
-    - multiple ways to do that found here: https://maven.apache.org/install.html
-      - in my case, i've used HomeBrew before for installing things and have a Mac, so i just did `brew install maven`
-      - you can check version with `mvn -v`
-  - developers: make sure you have access to team supabase
-- need to set up a local env file that lets you replace the DB_URL, DB_USERNAME, and DB_PASSWORD in the [application.properties file](./backend/src/main/resources/application.properties)
-- OPEN AND LOG INTO THE DOCKER APP ON YOUR LAPTOP (just having it open is enough for supabase to do its thing with it)
-- cd backend
+### Backend
 
-run the database:
+In order to run the backend for the first time, there are a couple of steps that you'll need to take to make sure you meet all of the necessary system requirements. Navigate to the backend directory by doing `cd backend`, and make sure you've installed all of the following:
+- **Java 25**
+  - If needed, you can download it [here](https://www.oracle.com/java/technologies/downloads/#jdk25-mac).
+  - Check your Java version with `java -version`.
+- **Supabase**
+  - In order to run and developer the backend locally, you will first need access to the project's corresponding Supabase Postgres database.
+  - Then, configure your local environment variables on your terminal using `export VARIABLE_NAME={variable_value}` for DB_USERNAME, DB_PASSWORD, and DB_URL, which are referenced in the [application.properties file](./backend/src/main/resources/application.properties). For example, you would want to run `export DB_USERNAME={nameHere}`, where `{nameHere}` is replaced by your true username.
+  - Run `echo DB_URL` to make sure you've configured everything correctly.
+- **Maven**
+  - This is our dependency manager for the backend, similar to how one would use `npm` for the frontend.
+  - You can install maven in multiple different ways, many of which are detailed [here](https://maven.apache.org/install.html).
+    - If you're using a Mac device and know you already have `brew` installed, you can simply run `brew install maven`.
+  - Check your Maven version with `mvn -v`.
+- **Docker Desktop**
+  - If needed, you can find the installer for it [here](https://docs.docker.com/desktop/).
+  - You will need the Docker app up and running on your device in order to successfully run and connect to Supabase. Simply having it open is enough for Supabase to know what to do in the steps below. 
 
-- FOLLOW THIS WHOLE TUTORIAL (MULTIPLE COMMANDS) https://medium.com/@ianktoo/my-first-time-setting-up-supabase-locally-and-why-it-almost-broke-me-the-quick-version-a17bab7ca1b0
+Once you have all of the above ready, you can actually run the server and database.
+- To run the database, you need to follow all of the steps [in this tutorial](https://medium.com/@ianktoo/my-first-time-setting-up-supabase-locally-and-why-it-almost-broke-me-the-quick-version-a17bab7ca1b0).
+- To run the server, you need to executive `mvn spring-boot:run` in the `backend` directory.
 
-- Configure your local environment variables (EXPORT DB_USERNAME=XXX, DB_PASSWORD=XXX, DB_URL=XXX) on your terminal.
-- Run `echo DB_URL` to make sure it's been set.
-
-run the server:
-
-- `mvn spring-boot:run`
-
-- go to http://localhost:8000/graphiql?path=/graphql and type in the following query
-
+Once both the server and database are running, you can go to http://localhost:8000/graphiql?path=/graphql in your browser, where you'll see a GraphQL playground where you can type in queries, such as the following:
 ```
 query {
   getSessionById(id: 1) {
@@ -88,30 +86,31 @@ query {
 }
 ```
 
-to pause the docker / stop the DB from running, you need to do `npx supabase stop`
-note to self: add team to supabase settings and set up local .env
+To stop running the Docker and DB, you will need to execute `npx supabase stop` in your terminal.
+To stop running the server, you can simply use the `CTRL + C` shortcut in the terminal running it.
 
 ## References
 
 ### Setup & Installation
 
-Next.js Project Creation: https://nextjs.org/docs/app/getting-started/installation
-Springboot Project Creation: https://start.spring.io/
-Connecting Springboot and Postgres: https://medium.com/@AlexanderObregon/using-spring-boot-with-postgresql-for-data-persistence-49e843ab46fc
-Setting up Supabase: https://medium.com/@ianktoo/my-first-time-setting-up-supabase-locally-and-why-it-almost-broke-me-the-quick-version-a17bab7ca1b0
-Creating Supabase tables: https://supabase.com/docs/guides/local-development/overview
-Connecting to database: https://supabase.com/docs/guides/database/connecting-to-postgres
-Getting Started with Spring Boot and PostgreSQL: https://dev.to/codereacher_20b8a/getting-started-with-spring-boot-and-postgresql-a-beginner-friendly-guide-2mhb
+Next.js Project Creation: https://nextjs.org/docs/app/getting-started/installation\
+Springboot Project Creation: https://start.spring.io/\
+Connecting Springboot and Postgres: https://medium.com/@AlexanderObregon/using-spring-boot-with-postgresql-for-data-persistence-49e843ab46fc\
+Setting up Supabase: https://medium.com/@ianktoo/my-first-time-setting-up-supabase-locally-and-why-it-almost-broke-me-the-quick-version-a17bab7ca1b0\
+Creating Supabase tables: https://supabase.com/docs/guides/local-development/overview\
+Connecting to database: https://supabase.com/docs/guides/database/connecting-to-postgres\
+Getting Started with Spring Boot and PostgreSQL: https://dev.to/codereacher_20b8a/getting-started-with-spring-boot-and-postgresql-a-beginner-friendly-guide-2mhb\
 
 ### GraphQL
 
-Building a GraphQL service: https://spring.io/guides/gs/graphql-server
-Class Notes App: https://github.com/CS-396-Full-Stack-Software-Eng/notes_app/blob/w6_eda_notes_summary_grpc/backend_spring/src/main/java/com/notes/app/data/Note.java
-Using Spring Boot with PostgreSQL for Data Persistence: https://medium.com/@AlexanderObregon/using-spring-boot-with-postgresql-for-data-persistence-49e843ab46fc
+Building a GraphQL service: https://spring.io/guides/gs/graphql-server\
+Class Notes App: https://github.com/CS-396-Full-Stack-Software-Eng/notes_app/blob/w6_eda_notes_summary_grpc/backend_spring/src/main/java/com/notes/app/data/Note.java\
+Using Spring Boot with PostgreSQL for Data Persistence: https://medium.com/@AlexanderObregon/using-spring-boot-with-postgresql-for-data-persistence-49e843ab46fc\
+Spring Boot GraphQL Tutorial: Simplify Your API with Query by Example: https://www.youtube.com/watch?v=J8vC8RflPPY&t=2s\
 
 ### General Documentation
 
-Springboot: https://docs.spring.io/spring-boot/index.html
+Springboot: https://docs.spring.io/spring-boot/index.html\
 
 ## Contributors (AKA "Team Pancakes")
 
