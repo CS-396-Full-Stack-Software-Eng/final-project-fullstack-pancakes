@@ -61,8 +61,8 @@ In order to run the backend for the first time, there are a couple of steps that
   - Check your Java version with `java -version`.
 - **Supabase**
   - In order to run and developer the backend locally, you will first need access to the project's corresponding Supabase Postgres database.
-  - Then, configure your local environment variables on your terminal using `export VARIABLE_NAME={variable_value}` for DB_USERNAME, DB_PASSWORD, and DB_URL, which are referenced in the [application.properties file](./backend/src/main/resources/application.properties). For example, you would want to run `export DB_USERNAME={nameHere}`, where `{nameHere}` is replaced by your true username.
-  - Run `echo DB_URL` to make sure you've configured everything correctly.
+  - Then, configure your local environment variables on your terminal using `export VARIABLE_NAME='variable_value'` for DB_USERNAME, DB_PASSWORD, and DB_URL, which are referenced in the [application.properties file](./backend/src/main/resources/application.properties). For example, you would want to run `export DB_USERNAME='nameHere'`, where `'nameHere'` is replaced by your true username.
+  - Run `echo $DB_USERNAME` to make sure you've configured everything correctly. Repeat this with `echo $DB_PASSWORD` and `echo $DB_URL`. Running these commands should return the value of each environment variable that you just set.
 - **Maven**
   - This is our dependency manager for the backend, similar to how one would use `npm` for the frontend.
   - You can install maven in multiple different ways, many of which are detailed [here](https://maven.apache.org/install.html).
@@ -72,9 +72,11 @@ In order to run the backend for the first time, there are a couple of steps that
   - If needed, you can find the installer for it [here](https://docs.docker.com/desktop/).
   - You will need the Docker app up and running on your device in order to successfully run and connect to Supabase. Simply having it open is enough for Supabase to know what to do in the steps below. 
 
-Once you have all of the above ready, you can actually run the server and database.
-- To run the database, you need to follow all of the steps [in this tutorial](https://medium.com/@ianktoo/my-first-time-setting-up-supabase-locally-and-why-it-almost-broke-me-the-quick-version-a17bab7ca1b0).
-- To run the server, you need to executive `mvn spring-boot:run` in the `backend` directory.
+Once you have all of the above ready, you then need to follow all of the steps [in this tutorial](https://medium.com/@ianktoo/my-first-time-setting-up-supabase-locally-and-why-it-almost-broke-me-the-quick-version-a17bab7ca1b0) to properly run your database for the first time.
+
+On all subsequent runs of your database, you just want to make sure that you have the most recent version of the supabase directory on your branch before you you run the database using `npx supabase start` in the `backend directoy`. 
+
+To run the server, you need to executive `mvn spring-boot:run` in the `backend` directory.
 
 Once both the server and database are running, you can go to http://localhost:8000/graphiql?path=/graphql in your browser, where you'll see a GraphQL playground where you can type in queries, such as the following:
 ```
