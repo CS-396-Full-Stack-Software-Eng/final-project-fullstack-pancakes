@@ -76,7 +76,7 @@ query {
 }
 ```
 
-
+to pause the docker / stop the DB from running, you need to do `npx supabase stop`
 note to self: add team to supabase settings and set up local .env
 
 ## References
