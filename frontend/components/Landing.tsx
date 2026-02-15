@@ -4,6 +4,7 @@ import { useState } from "react";
 
 export default function Landing() {
   const [partySize, setPartySize] = useState("");
+  const [leaderName, setLeaderName] = useState("");
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
@@ -26,7 +27,7 @@ export default function Landing() {
               How many people?
             </label>
             <input
-              className="w-full px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition-all text-xl font-semibold text-center"
+              className="w-full text-gray-700 px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition-all text-xl font-semibold text-center"
               type="number"
               id="party_size"
               name="party_size"
@@ -34,6 +35,24 @@ export default function Landing() {
               min="1"
               value={partySize}
               onChange={(e) => setPartySize(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label
+              className="block text-sm font-medium text-gray-700 mb-2"
+              htmlFor="leader_name"
+            >
+              Your Name
+            </label>
+            <input
+              className="w-full text-gray-700 px-4 py-3 rounded-xl border-2 border-gray-100 focus:border-amber-500 focus:ring-2 focus:ring-amber-200 outline-none transition-all text-xl font-semibold text-center"
+              type="text"
+              id="leader_name"
+              name="leader_name"
+              placeholder="e.g. Alex"
+              value={leaderName}
+              onChange={(e) => setLeaderName(e.target.value)}
             />
           </div>
 
@@ -65,7 +84,7 @@ export default function Landing() {
               />
             </label>
           </div>
-          <UploadReceiptButton partySize={partySize} />
+          <UploadReceiptButton partySize={partySize} leaderName={leaderName} />
         </form>
       </div>
     </div>

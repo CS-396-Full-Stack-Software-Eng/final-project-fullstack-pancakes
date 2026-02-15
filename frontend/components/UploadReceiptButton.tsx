@@ -1,42 +1,57 @@
 import { gql } from "@apollo/client";
 import { useMutation } from "@apollo/client/react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
-const CREATE_SESSION = gql`
-  mutation CreateSession($partySize: Int!) {
-    createSession(partySize: $partySize) {
+const UPLOAD_RECEIPT = gql`
+  mutation UploadReceipt($image: String!, $partySize: Int!, $leaderName: String!) {
+    uploadReceipt(image: $image, partySize: $partySize, leaderName: $leaderName) {
       id
       partySize
     }
   }
 `;
 
-interface StartSessionProps {
-  partySize: string;
+interface UploadReceiptData {
+  uploadReceipt: {
+    id: string;
+    partySize: number;
+  };
 }
 
-export default function UploadReceiptButton({ partySize }: StartSessionProps) {
-  const [startSession, { loading, error, data }] = useMutation(CREATE_SESSION);
+interface StartSessionProps {
+  partySize: string;
+  leaderName: string;
+}
+
+export default function UploadReceiptButton({ partySize, leaderName }: StartSessionProps) {
+  const router = useRouter();
+  const [uploadReceipt, { loading }] = useMutation<UploadReceiptData>(UPLOAD_RECEIPT);
+
   const handleClick = async () => {
     try {
-      await startSession({
+      const { data } = await uploadReceipt({
         variables: {
+          image: "fake-receipt-placeholder",
           partySize: parseInt(partySize, 10),
+          leaderName,
         },
       });
+      if (data?.uploadReceipt?.id) {
+        router.push(`/createSession?id=${data.uploadReceipt.id}`);
+      }
     } catch (err) {
-      console.log(err);
+      console.error("Failed to create session:", err);
     }
   };
+
   return (
-    <Link href={`/createSession`}>
-      <button
-        onClick={handleClick}
-        type="button"
-        className="w-full bg-amber-600 text-white font-bold py-4 rounded-2xl transition-all"
-      >
-        {loading ? "Processing..." : "Process Receipt"}{" "}
-      </button>
-    </Link>
+    <button
+      onClick={handleClick}
+      disabled={loading}
+      type="button"
+      className="w-full bg-amber-600 text-white font-bold py-4 rounded-2xl transition-all disabled:opacity-50"
+    >
+      {loading ? "Processing..." : "Process Receipt"}
+    </button>
   );
 }
