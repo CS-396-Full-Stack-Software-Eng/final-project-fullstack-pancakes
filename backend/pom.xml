@@ -74,11 +74,10 @@
 			<artifactId>spring-boot-starter-graphql-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<!-- added for level 1 -->
 		<dependency>
-    		<groupId>com.fasterxml.jackson.core</groupId>
-    		<artifactId>jackson-databind</artifactId>
-		</dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+    	</dependency>
 	</dependencies>
 
 	<build>

@@ -1,12 +1,22 @@
 "use client";
 import { gql } from "@apollo/client";
-import { useQuery } from "@apollo/client/react";
+import { useQuery, useMutation } from "@apollo/client/react";
 
 const GET_SESSION = gql`
   query GetSession($id: ID!) {
     getSessionById(id: $id) {
       id
       partySize
+      items
+      users
+    }
+  }
+`;
+
+const CLAIM_ITEM = gql`
+  mutation ClaimItem($sessionId: ID!, $itemId: ID!, $userId: ID!) {
+    claimItem(sessionId: $sessionId, itemId: $itemId, userId: $userId) {
+      id
       items
       users
     }
@@ -25,13 +35,14 @@ interface SessionData {
 interface Item {
   name: string;
   price: number;
-  claimedBy: string | null;
+  claimedBy: string;
 }
 
 export default function SessionView({ sessionId }: { sessionId: string }) {
   const { data, loading, error } = useQuery<SessionData>(GET_SESSION, {
     variables: { id: sessionId },
   });
+  const [claimItem] = useMutation(CLAIM_ITEM);
 
   if (loading) {
     return (
@@ -60,6 +71,30 @@ export default function SessionView({ sessionId }: { sessionId: string }) {
   const users: Record<string, string> = session.users
     ? JSON.parse(session.users)
     : {};
+
+  const currentUserId = Object.keys(users)[0] || "";
+
+  const handleClaim = async (itemId: string) => {
+    try {
+      await claimItem({
+        variables: { sessionId, itemId, userId: currentUserId },
+        refetchQueries: [{ query: GET_SESSION, variables: { id: sessionId } }],
+      });
+    } catch (err) {
+      console.error("Failed to claim item:", err);
+    }
+  };
+
+  const handleUnclaim = async (itemId: string) => {
+    try {
+      await claimItem({
+        variables: { sessionId, itemId, userId: "" },
+        refetchQueries: [{ query: GET_SESSION, variables: { id: sessionId } }],
+      });
+    } catch (err) {
+      console.error("Failed to unclaim item:", err);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
@@ -107,11 +142,23 @@ export default function SessionView({ sessionId }: { sessionId: string }) {
                     </p>
                   </div>
                   {item.claimedBy ? (
-                    <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">
-                      {users[item.claimedBy] || item.claimedBy}
-                    </span>
+                    item.claimedBy === currentUserId ? (
+                      <button
+                        onClick={() => handleUnclaim(key)}
+                        className="px-4 py-2 bg-gray-200 text-gray-600 font-bold rounded-xl text-sm transition-all hover:bg-gray-300"
+                      >
+                        Unclaim
+                      </button>
+                    ) : (
+                      <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">
+                        {users[item.claimedBy] || item.claimedBy}
+                      </span>
+                    )
                   ) : (
-                    <button className="px-4 py-2 bg-amber-600 text-white font-bold rounded-xl text-sm transition-all hover:bg-amber-700">
+                    <button
+                      onClick={() => handleClaim(key)}
+                      className="px-4 py-2 bg-amber-600 text-white font-bold rounded-xl text-sm transition-all hover:bg-amber-700"
+                    >
                       Claim
                     </button>
                   )}

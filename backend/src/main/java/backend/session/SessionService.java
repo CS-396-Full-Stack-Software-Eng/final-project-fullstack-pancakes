@@ -1,10 +1,10 @@
 package backend.session;
 
 import org.springframework.stereotype.Service;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Optional;
-
-// added for level 1
 import java.util.LinkedHashMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,42 +12,67 @@ import java.util.UUID;
 
 @Service
 public class SessionService {
-  private final SessionRepository sessionRepository;
+    private final SessionRepository sessionRepository;
+    private final ObjectMapper mapper = new ObjectMapper();
 
-  public SessionService(SessionRepository sessionRepository) {
-    this.sessionRepository = sessionRepository;
-  }
+    public SessionService(SessionRepository sessionRepository) {
+        this.sessionRepository = sessionRepository;
+    }
 
-  public Optional<Session> getSessionById(Long sessionId) {
-    return sessionRepository.findById(sessionId);
-  }
+    public Optional<Session> getSessionById(Long sessionId) {
+        return sessionRepository.findById(sessionId);
+    }
 
-  public Session createSession(int partySize) {
-    System.out.println("session created");
-    return sessionRepository.save(new Session(partySize));
-  }
+    public Session createSession(int partySize) {
+        System.out.println("session created");
+        return sessionRepository.save(new Session(partySize));
+    }
 
-  // for app level 1
-  public Session createFakeSession(int partySize, String leaderName) {
-    Session session = new Session();
-    session.setPartySize(partySize);
+    public Session createFakeSession(int partySize, String leaderName) {
+        Session session = new Session();
+        session.setPartySize(partySize);
+        session.setParsingStatus(ParsingStatus.ACTIVE);
+        session.setReceiptUrl("/images/sample-receipt.jpg");
 
-    // setting parsing status to active
-    session.setParsingStatus(ParsingStatus.ACTIVE);
-    session.setReceiptUrl("/images/sample-receipt.jpg"); 
+        try {
+            Map<String, String> users = new HashMap<>();
+            users.put(UUID.randomUUID().toString(), leaderName);
+            session.setUsers(mapper.writeValueAsString(users));
 
-    // initialize user list as the group leader
-    Map<String, String> users = new HashMap<>();
-    users.put(UUID.randomUUID().toString(), leaderName);
-    session.setUsers(users);
+            Map<String, Map<String, Object>> items = new LinkedHashMap<>();
+            items.put("item_1", Map.of("name", "Pizza", "price", 16.50, "claimedBy", ""));
+            items.put("item_2", Map.of("name", "Sprite", "price", 2.00, "claimedBy", ""));
+            session.setItems(mapper.writeValueAsString(items));
+        } catch (Exception e) {
+            throw new RuntimeException("could not serialize session data", e);
+        }
 
-    // hardcoded items on receipt
-    Map<String, Map<String, Object>> items = new LinkedHashMap<>();
-    items.put("item_1", Map.of("name", "Pizza", "price", 16.50, "claimedBy", "User1"));
-    items.put("item_2", Map.of("name", "Sprite", "price", 2.00, "claimedBy", "User1"));
-    session.setItems(items);
-    System.out.println("Hardcoded session created for: " + leaderName);
-    return sessionRepository.save(session);
+        System.out.println("Hardcoded session created for: " + leaderName);
+        return sessionRepository.save(session);
+    }
 
-  }
+    public Session claimItem(Long sessionId, String itemId, String userId) {
+        System.out.println("user " + userId + " claimed item: " + itemId);
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("session not found"));
+
+        try {
+            Map<String, Map<String, Object>> items = mapper.readValue(
+                    session.getItems(),
+                    new TypeReference<Map<String, Map<String, Object>>>() {}
+            );
+
+            if (!items.containsKey(itemId)) {
+                throw new RuntimeException("item not found");
+            }
+
+            Map<String, Object> item = items.get(itemId);
+            item.put("claimedBy", userId);
+
+            session.setItems(mapper.writeValueAsString(items));
+            return sessionRepository.save(session);
+        } catch (Exception e) {
+            throw new RuntimeException("could not claim item", e);
+        }
+    }
 }

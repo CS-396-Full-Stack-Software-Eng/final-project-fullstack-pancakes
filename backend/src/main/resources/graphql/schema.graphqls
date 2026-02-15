@@ -1,27 +1,28 @@
 # Must match method names in SessionController class
 type Query {
-  getSessionById(id: ID!): Session
+    getSessionById(id: ID!): Session
+}
+
+type Mutation {
+    createSession(partySize: Int!): Session
+    uploadReceipt(image: String!, partySize: Int!, leaderName: String!): Session
+    claimItem(sessionId: ID!, itemId: ID!, userId: ID!): Session
 }
 
 # Must match fields in Session class
 type Session {
-  id: ID!
-  partySize: Int
-  receiptUrl: String
-  parsingStatus: ParsingStatus
-  users: String
-  items: String
+    id: ID!
+    partySize: Int!
+    receiptUrl: String
+    parsingStatus: ParsingStatus
+    users: String
+    items: String
 }
 
 enum ParsingStatus {
-  INITIALIZING
-  PARSING
-  ACTIVE
-  CLOSED
-  FAILURE
-}
-
-type Mutation {
-  createSession(partySize: Int!): Session
-  uploadReceipt(image: String!, partySize: Int!, leaderName: String!): Session
+    INITIALIZING
+    PARSING
+    ACTIVE
+    CLOSED
+    FAILURE
 }
