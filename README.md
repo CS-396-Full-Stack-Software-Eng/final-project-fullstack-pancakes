@@ -62,7 +62,7 @@ In order to run the backend for the first time, there are a couple of steps that
 - **Supabase**
   - In order to run and developer the backend locally, you will first need access to the project's corresponding Supabase Postgres database.
   - Then, configure your local environment variables on your terminal using `export VARIABLE_NAME='variable_value'` for DB_USERNAME, DB_PASSWORD, and DB_URL, which are referenced in the [application.properties file](./backend/src/main/resources/application.properties). For example, you would want to run `export DB_USERNAME='nameHere'`, where `'nameHere'` is replaced by your true username.
-  - Run `echo $DB_USERNAME` to make sure you've configured everything correctly. Repeat this with `echo $DB_PASSWORD` and `echo $DB_URL`. Running these commands should return the value of each environment variable that you just set.
+  - Run `echo $DB_USERNAME` to make sure you've configured everything correctly. Repeat this with `echo $DB_PASSWORD` and `echo $DB_URL`. Running these commands should return the value of each environment variable that you just set. You will need to run these commands every time you return to the backend repo. 
 - **Maven**
   - This is our dependency manager for the backend, similar to how one would use `npm` for the frontend.
   - You can install maven in multiple different ways, many of which are detailed [here](https://maven.apache.org/install.html).
