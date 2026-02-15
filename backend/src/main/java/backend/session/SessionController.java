@@ -24,4 +24,10 @@ public class SessionController {
   public Session createSession(@Argument int partySize) {
     return service.createSession(partySize);
   }
+
+  // added for level 1 app
+  @MutationMapping
+  public Session uploadReceipt(@Argument String image, @Argument int partySize, @Argument String leaderName) {
+    return service.createFakeSession(partySize, leaderName);
+  }
 }

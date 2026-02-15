@@ -7,8 +7,21 @@ type Query {
 type Session {
   id: ID!
   partySize: Int
+  receiptUrl: String
+  parsingStatus: ParsingStatus
+  users: String
+  items: String
+}
+
+enum ParsingStatus {
+  INITIALIZING
+  PARSING
+  ACTIVE
+  CLOSED
+  FAILURE
 }
 
 type Mutation {
   createSession(partySize: Int!): Session
+  uploadReceipt(image: String!, partySize: Int!, leaderName: String!): Session
 }
