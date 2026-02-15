@@ -26,9 +26,12 @@ The pros and cons of our design choices are as follows:
 
 ### Sequence Diagrams
 
+## State Model
+![state-model.png](state-model.png)
+
 ## Database Schema
 
-## State Model
+
 
 ## API Design
 
