@@ -17,6 +17,7 @@ public class SessionService {
   }
 
   public Session createSession(int partySize) {
+    System.out.println("session created");
     return sessionRepository.save(new Session(partySize));
   }
 }

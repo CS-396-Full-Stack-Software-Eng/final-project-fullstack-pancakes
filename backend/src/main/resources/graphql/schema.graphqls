@@ -1,10 +1,14 @@
 # Must match method names in SessionController class
 type Query {
-    getSessionById(id: ID!): Session
+  getSessionById(id: ID!): Session
 }
 
 # Must match fields in Session class
 type Session {
-    id: ID!
-    partySize: Int
+  id: ID!
+  partySize: Int
+}
+
+type Mutation {
+  createSession(partySize: Int!): Session
 }
