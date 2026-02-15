@@ -1,0 +1,10 @@
+# Must match method names in SessionController class
+type Query {
+    getSessionById(id: ID!): Session
+}
+
+# Must match fields in Session class
+type Session {
+    id: ID!
+    partySize: Int
+}
