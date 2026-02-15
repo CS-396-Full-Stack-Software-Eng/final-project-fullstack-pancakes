@@ -3,8 +3,15 @@ type Query {
     getSessionById(id: ID!): Session
 }
 
+type Mutation {
+    createSession(partySize: Int!): Session
+    claimItem(sessionId: ID!, itemId: ID!, userId: ID!): Session
+}
+
 # Must match fields in Session class
 type Session {
     id: ID!
-    partySize: Int
+    partySize: Int!
+    users: String
+    items: String
 }
