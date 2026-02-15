@@ -71,10 +71,10 @@ In order to run the backend for the first time, there are a couple of steps that
 - **Docker Desktop**
   - If needed, you can find the installer for it [here](https://docs.docker.com/desktop/).
   - You will need the Docker app up and running on your device in order to successfully run and connect to Supabase. Simply having it open is enough for Supabase to know what to do in the steps below. 
+- **First Database Run**
+  - Once you have all of the above ready, you then need to follow all of the steps [in this tutorial](https://medium.com/@ianktoo/my-first-time-setting-up-supabase-locally-and-why-it-almost-broke-me-the-quick-version-a17bab7ca1b0) to properly run your database for the first time.
 
-Once you have all of the above ready, you then need to follow all of the steps [in this tutorial](https://medium.com/@ianktoo/my-first-time-setting-up-supabase-locally-and-why-it-almost-broke-me-the-quick-version-a17bab7ca1b0) to properly run your database for the first time.
-
-On all subsequent runs of your database, you just want to make sure that you have the most recent version of the supabase directory on your branch before you you run the database using `npx supabase start` in the `backend directoy`. 
+On all subsequent runs of your database, you just want to make sure that you have the most recent version of the supabase directory on your branch before you you run the database using `npx supabase start` in the `backend` directory. 
 
 To run the server, you need to executive `mvn spring-boot:run` in the `backend` directory.
 
@@ -90,6 +90,35 @@ query {
 
 To stop running the Docker and DB, you will need to execute `npx supabase stop` in your terminal.
 To stop running the server, you can simply use the `CTRL + C` shortcut in the terminal running it.
+
+## Troubleshooting Supabase Migration History Mismatches
+```
+The remote database's migration history does not 
+match local files in supabase/migrations directory.
+```
+This issue occurs when there's a mismatch between the migration files stored locally in the `supabase/migrations1 directory and the migration history recorded in your remote Supabase database. This typically happens when:
+- Migrations were applied directly to the remote database without being committed locally
+- Local migration files were deleted or modified after being applied remotely
+- You're working on a different branch or pulled changes that modified migrations
+- The local and remote databases got out of sync
+
+You can fix it by resetting your local database with the following commands:
+```
+# Stop the local Supabase instance
+npx supabase stop
+
+# Delete the local database volume
+docker volume rm supabase_db_backend
+
+# Restart Supabase (this will reapply all migrations)
+npx supabase start
+```
+
+Best practices to avoid this problem:
+- Always commit migration files to version control before applying them remotely
+- Pull the latest changes from your team before creating new migrations
+- Use `npx supabase db push` to sync local migrations to remote
+- Don't manually edit migration files that have already been applied
 
 ## References
 
