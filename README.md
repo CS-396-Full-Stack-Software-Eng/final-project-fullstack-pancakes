@@ -62,7 +62,7 @@ In order to run the backend for the first time, there are a couple of steps that
 - **Supabase**
   - In order to run and developer the backend locally, you will first need access to the project's corresponding Supabase Postgres database.
   - Then, configure your local environment variables on your terminal using `export VARIABLE_NAME='variable_value'` for DB_USERNAME, DB_PASSWORD, and DB_URL, which are referenced in the [application.properties file](./backend/src/main/resources/application.properties). For example, you would want to run `export DB_USERNAME='nameHere'`, where `'nameHere'` is replaced by your true username.
-  - Run `echo $DB_USERNAME` to make sure you've configured everything correctly. Repeat this with `echo $DB_PASSWORD` and `echo $DB_URL`. Running these commands should return the value of each environment variable that you just set. You will need to run these commands every time you return to the backend repo. 
+  - Run `echo $DB_USERNAME` to make sure you've configured everything correctly. Repeat this with `echo $DB_PASSWORD` and `echo $DB_URL`. Running these commands should return the value of each environment variable that you just set. You will need to re-configure these local environment variables every time you return to the backend repo. 
 - **Maven**
   - This is our dependency manager for the backend, similar to how one would use `npm` for the frontend.
   - You can install maven in multiple different ways, many of which are detailed [here](https://maven.apache.org/install.html).
@@ -74,7 +74,7 @@ In order to run the backend for the first time, there are a couple of steps that
 - **First Database Run**
   - Once you have all of the above ready, you then need to follow all of the steps [in this tutorial](https://medium.com/@ianktoo/my-first-time-setting-up-supabase-locally-and-why-it-almost-broke-me-the-quick-version-a17bab7ca1b0) to properly run your database for the first time.
 
-On all subsequent runs of your database, you just want to make sure that you have the most recent version of the supabase directory on your branch before you you run the database using `npx supabase start` in the `backend` directory. 
+On all subsequent runs of your database, you just want to make sure that you have the most recent version of the supabase directory on your branch before you you run the database using `npx supabase start` in the `backend` directory. Make sure you also re-configure your local environment variables as needed whenever returning to the backend repo.
 
 To run the server, you need to executive `mvn spring-boot:run` in the `backend` directory.
 
