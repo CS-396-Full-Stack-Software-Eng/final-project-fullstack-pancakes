@@ -1,27 +1,7 @@
 "use client";
-import { gql } from "@apollo/client";
 import { useQuery, useMutation } from "@apollo/client/react";
-
-const GET_SESSION = gql`
-  query GetSession($id: ID!) {
-    getSessionById(id: $id) {
-      id
-      partySize
-      items
-      users
-    }
-  }
-`;
-
-const CLAIM_ITEM = gql`
-  mutation ClaimItem($sessionId: ID!, $itemId: ID!, $userId: ID!) {
-    claimItem(sessionId: $sessionId, itemId: $itemId, userId: $userId) {
-      id
-      items
-      users
-    }
-  }
-`;
+import { GET_SESSION } from "@/lib/graphql/queries";
+import { CLAIM_ITEM } from "@/lib/graphql/mutations";
 
 interface SessionData {
   getSessionById: {
@@ -38,7 +18,11 @@ interface Item {
   claimedBy: string;
 }
 
-export default function SessionView({ sessionId }: { sessionId: string }) {
+interface SessionViewProps {
+  sessionId: string;
+}
+
+export default function SessionView({ sessionId }: SessionViewProps) {
   const { data, loading, error } = useQuery<SessionData>(GET_SESSION, {
     variables: { id: sessionId },
   });
@@ -97,19 +81,19 @@ export default function SessionView({ sessionId }: { sessionId: string }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
-        <div className="text-center mb-6">
+    <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      <article className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+        <header className="text-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
             Split the Bill
           </h1>
           <p className="text-gray-500 mt-2">
             Session #{session.id} &middot; {session.partySize} people
           </p>
-        </div>
+        </header>
 
         {Object.keys(users).length > 0 && (
-          <div className="mb-6">
+          <section className="mb-6">
             <h2 className="text-sm font-medium text-gray-500 mb-2">People</h2>
             <div className="flex flex-wrap gap-2">
               {Object.values(users).map((name) => (
@@ -121,10 +105,10 @@ export default function SessionView({ sessionId }: { sessionId: string }) {
                 </span>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        <div>
+        <section>
           <h2 className="text-sm font-medium text-gray-500 mb-3">Items</h2>
           {Object.keys(items).length === 0 ? (
             <p className="text-gray-400 text-center py-4">No items yet.</p>
@@ -135,12 +119,12 @@ export default function SessionView({ sessionId }: { sessionId: string }) {
                   key={key}
                   className="flex items-center justify-between p-4 rounded-2xl border-2 border-gray-100"
                 >
-                  <div>
+                  <label>
                     <p className="font-semibold text-gray-900">{item.name}</p>
                     <p className="text-sm text-gray-500">
                       ${Number(item.price).toFixed(2)}
                     </p>
-                  </div>
+                  </label>
                   {item.claimedBy ? (
                     item.claimedBy === currentUserId ? (
                       <button
@@ -166,8 +150,8 @@ export default function SessionView({ sessionId }: { sessionId: string }) {
               ))}
             </ul>
           )}
-        </div>
-      </div>
-    </div>
+        </section>
+      </article>
+    </main>
   );
 }

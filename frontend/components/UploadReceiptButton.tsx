@@ -1,15 +1,6 @@
-import { gql } from "@apollo/client";
 import { useMutation } from "@apollo/client/react";
 import { useRouter } from "next/navigation";
-
-const UPLOAD_RECEIPT = gql`
-  mutation UploadReceipt($image: String!, $partySize: Int!, $leaderName: String!) {
-    uploadReceipt(image: $image, partySize: $partySize, leaderName: $leaderName) {
-      id
-      partySize
-    }
-  }
-`;
+import { UPLOAD_RECEIPT } from "@/lib/graphql/mutations";
 
 interface UploadReceiptData {
   uploadReceipt: {
@@ -23,9 +14,13 @@ interface StartSessionProps {
   leaderName: string;
 }
 
-export default function UploadReceiptButton({ partySize, leaderName }: StartSessionProps) {
+export default function UploadReceiptButton({
+  partySize,
+  leaderName,
+}: StartSessionProps) {
   const router = useRouter();
-  const [uploadReceipt, { loading }] = useMutation<UploadReceiptData>(UPLOAD_RECEIPT);
+  const [uploadReceipt, { loading }] =
+    useMutation<UploadReceiptData>(UPLOAD_RECEIPT);
 
   const handleClick = async () => {
     try {

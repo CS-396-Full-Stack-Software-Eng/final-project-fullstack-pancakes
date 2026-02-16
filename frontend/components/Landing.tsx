@@ -9,17 +9,17 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
+        <section className="text-center mb-8">
+          <header className="text-3xl font-bold text-gray-900 tracking-tight">
             Split the Bill
-          </h1>
+          </header>
           <p className="text-gray-500 mt-2">
             Upload your receipt to get started.
           </p>
-        </div>
+        </section>
 
         <form className="space-y-6">
-          <div>
+          <section>
             <label
               className="block text-sm font-medium text-gray-700 mb-2"
               htmlFor="party_size"
@@ -36,9 +36,9 @@ export default function Landing() {
               value={partySize}
               onChange={(e) => setPartySize(e.target.value)}
             />
-          </div>
+          </section>
 
-          <div>
+          <section>
             <label
               className="block text-sm font-medium text-gray-700 mb-2"
               htmlFor="leader_name"
@@ -54,9 +54,9 @@ export default function Landing() {
               value={leaderName}
               onChange={(e) => setLeaderName(e.target.value)}
             />
-          </div>
+          </section>
 
-          <div>
+          <section>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Receipt Photo
             </label>
@@ -83,7 +83,7 @@ export default function Landing() {
                 capture="environment"
               />
             </label>
-          </div>
+          </section>
           <UploadReceiptButton partySize={partySize} leaderName={leaderName} />
         </form>
       </div>
