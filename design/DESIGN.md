@@ -31,22 +31,6 @@ The pros and cons of our design choices are as follows:
 
 ### Sequence Diagrams
 
-#### Description of Receipt Lifecycle
-1. The lifecycle of a receipt begins when a group leader uploads an image of the receipt. 
-This action creates a session record in the database, generates a unique session_id, and 
-sets the parsing_status to pending.
-2. The receipt is moved to the message queue for processing. At this time, the UI displays 
-a parsing state. While items aren’t yet visible for claiming at this step, other users can 
-join the session via a generated QR code provided to the group leader.  
-3. Once the receipt parsing service confirms a success status, the itemized data is committed 
-to the `items` column in the database, which is of type JSONB. After the database writes the topic
-queue broadcasts the new data to the UI. 
-4. Multiple users can concurrently claim or unclaim their items. This updates the owner mapping 
-in the database in real-time. Since the server is stateless, the database acts as the source of 
-truth to prevent multiple users from claiming the same items.
-5. The lifecycle ends when the group leader triggers a close session event. The session state 
-becomes read-only, and the bill summary is generated for all participants.
-
 #### Receipt Upload Sequence Diagram
 ![receipt-upload-sequence-diagram.png](receipt-upload-sequence-diagram.png)
 
@@ -55,6 +39,22 @@ becomes read-only, and the bill summary is generated for all participants.
 
 ## State Model
 ![state-model.png](state-model.png)
+
+The lifecycle of a receipt is as follows:
+1. The lifecycle of a receipt begins when a group leader uploads an image of the receipt.
+   This action creates a session record in the database, generates a unique session_id, and
+   sets the parsing_status to pending.
+2. The receipt is moved to the message queue for processing. At this time, the UI displays
+   a parsing state. While items aren’t yet visible for claiming at this step, other users can
+   join the session via a generated QR code provided to the group leader.
+3. Once the receipt parsing service confirms a success status, the itemized data is committed
+   to the `items` column in the database, which is of type JSONB. After the database writes the topic
+   queue broadcasts the new data to the UI.
+4. Multiple users can concurrently claim or unclaim their items. This updates the owner mapping
+   in the database in real-time. Since the server is stateless, the database acts as the source of
+   truth to prevent multiple users from claiming the same items.
+5. The lifecycle ends when the group leader triggers a close session event. The session state
+   becomes read-only, and the bill summary is generated for all participants.
 
 ## Database Schema
 ![data-schema.png](data-schema.png)
@@ -200,7 +200,7 @@ type Subscription {
 }
 ```
 
-## Failure Modes
+## Failure Scenarios
 
 ### Slow Network
 **Problem:** There is a risk that high network latency could cause the UI to receive notifications of parsed items and 
