@@ -110,5 +110,94 @@ There is also no “creation” involved in this app aside from uploading a rece
 The only “update” that’s happening on the user end is the claiming/unclaiming items.
 
 ### GraphQL Types & Mutations
+```
+# types
+type Session {
+ session_id: ID!
+ party_size: Int!
+ users: JSONB!     # map of User UUIDs to names
+ items: JSONB!     # map of Item UUIDs to details (price, owner)
+ tip_per_person: Float
+ tax_per_person: Float
+ parsing_status: ParsingStatus!
+}
+
+
+type Item {
+ id: ID!
+ name: String!
+ price: Float!
+ owner_id: ID     # null if unclaimed
+}
+
+
+enum ParsingStatus {
+ INITIALIZING     # job is being submitted to worker
+ PARSING          # worker is parsing receipt
+ ACTIVE           # receipt parsed, streaming items to UI
+ CLOSED           # receipt / session done
+ FAILURE          # failed to parse the receipt
+}
+
+
+type ClaimResult {
+ success: Boolean!
+ message: String
+ updatedItem: Item
+}
+
+
+# queries
+type Query {
+ # fetches the full 'Source of Truth' for a session
+ # needed for late joiners who need their UI hydrated instantly
+ getSession(session_id: ID!): Session
+
+
+ # calculates a specific user's financial responsibility
+ # (sum of claimed items + individual share of tax/tip)
+ getUserTotal(session_id: ID!, user_id: ID!): Float
+}
+
+
+# mutations
+type Mutation {
+ # starts the session and immediately starts background OCR
+ # implicitly creates the session row in Postgres
+ uploadReceipt(image: String!, partySize: Int!, leaderName: String!): Session
+
+
+ # adds a member to the users JSONB map after joining session
+ addUserToSession(session_id: ID!, name: String!): Session
+
+
+ # atomic operation to claim an item
+ # solves race conditions by checking 'owner_id IS NULL'
+ claimItem(session_id: ID!, item_id: ID!, user_id: ID!): ClaimResult
+
+
+ # resets the owner of an item to null
+ unclaimItem(session_id: ID!, item_id: ID!): ClaimResult
+
+
+ # finalizes the bill and locks edits
+ closeSession(session_id: ID!): Session
+}
+
+
+# subscriptions
+type Subscription {
+ # pushes items to the UI as the ParsingService finishes them
+ itemParsed(session_id: ID!): Item
+
+
+ # broadcasts any claim/unclaim action to all users instantly
+ itemStateChanged(session_id: ID!): Item
+
+
+ # notifies the group when the bill moves to 'COMPLETED' or 'CLOSED'
+ sessionStatusChanged(session_id: ID!): ParsingStatus
+}
+```
 
 ## Failure Modes
