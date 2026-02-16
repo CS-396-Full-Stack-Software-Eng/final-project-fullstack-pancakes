@@ -8,7 +8,7 @@ and view the exact amount they are responsible for. The key functionalities for 
 
 We will use the following tech stack:
 - **Frontend:** Next.js
-- **Backend:** GraphQL APIs with Spring Boot framework
+- **Backend:** GraphQL APIs with SpringBoot framework
 - **Message Queue:** Redis
 - **Database:** PostgreSQL with Supabase
 
@@ -201,3 +201,31 @@ type Subscription {
 ```
 
 ## Failure Modes
+
+### Slow Network
+**Problem:** There is a risk that high network latency could cause the UI to receive notifications of parsed items and 
+allow users to attempt to claim an item before said item has been fully persisted in the database.
+
+**Solution:** The Receipt Parsing Service is designed to perform strictly sequential writes. It first commits the 
+itemized data to the Postgres database, and only then pushes the notification to the Topic Queue. This guarantees that 
+by the time a user sees an item in the UI, it is already stored in the database and ready for interaction.
+
+### Server Error (e.g., Receipt Parse Worker Crashing)
+
+**Problem:** If the backend parsing worker crashes during processing, the UI may fail to display items without providing 
+any feedback to the user, leading to a stalled session
+
+**Solution:** We will implement a robust state-tracking system for the worker that monitors the parsing status as 
+`PENDING`, `COMPLETE`, or `FAILED`. By catching errors and updating the database status accordingly, 
+the UI can detect a `FAILED` state and immediately inform the user so they can attempt to re-upload the receipt rather 
+than infinitely waiting.
+
+### Data Inconsistency & Race Conditions
+
+**Problem:** Inconsistencies can occur if two users attempt to claim the same item at the exact same time, or if data is 
+lost while moving between the message queue and the database.
+
+**Solution:** To prevent these issues, all database operations related to claiming items are executed as atomic 
+transactions, ensuring only one user can successfully write to a record. Additionally, our system will be using an 
+acknowledgement-based workflow where the database must confirm a successful write before any corresponding update is 
+broadcast to the Topic Queue, ensuring the UI and database remain in constant synchronization.
