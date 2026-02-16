@@ -71,4 +71,44 @@ server and UI remain clear about what the receipt’s current status is.
 
 ## API Design
 
+### Uploading a Receipt
+**Problem:** Receipt images are raw binary data. Sending them through a standard GraphQL mutation requires Base64 
+encoding, which can increase payload size and complexity by a wide margin.
+
+**Solution:** We will use Supabase Storage (REST) for a high-performance binary upload and a GraphQL mutation to 
+trigger the business logic
+
+_**Note:** We still need to figure out if Supabase Storage or the Redis Message Queue should be used to store records 
+of receipt images._
+
+### Fetch group, bill, user, and other nested data
+**Problem:** The session data is highly relational (Session → Items → Users). Using REST format would require multiple 
+round-trips (N+1) to fetch the bill, then users, and specific item claims.
+
+**Solution:** Use a GraphQL query (getSession). This allows the UI (especially for late joiners) to fetch the entire 
+‘Source of Truth,’ which includes the session metadata and full users and `items` JSONB blocks, in a single request.
+
+### Real-time Updates
+**Problem:** To satisfy the requirements of UI streaming and immediate updates, the system cannot rely on manual 
+refreshes or HTTP polling, which would overwhelm the database.
+
+**Solution:** Use GraphQL Subscriptions via WebSockets. The server pushes itemParsed events to the message queue for 
+the ReceiptParser worker to work on. As the worker finishes these jobs, the items get streamed to the UI. 
+Additionally, itemStateChange events are handled via the WebSocket whenever an item mutation succeeds, and this 
+ensures all group members stay synchronized without additional network overhead or needing to refresh the page.
+
+### Non-Goals 
+The following are features that we do NOT want or expect to implement:
+- Allowing users to change item information or item price
+  - Rather, aside from who has claimed an item, all item information is fixed after parsing.
+- Allowing users to delete items
+  - However, users can unclaim items
+- Accessing the device camera
+  - Rather, users are expected to upload a picture they've already taken of a receipt
+
+There is also no “creation” involved in this app aside from uploading a receipt to implicitly start/create a session.
+The only “update” that’s happening on the user end is the claiming/unclaiming items.
+
+### GraphQL Types & Mutations
+
 ## Failure Modes
