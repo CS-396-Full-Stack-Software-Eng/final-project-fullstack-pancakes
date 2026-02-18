@@ -7,11 +7,11 @@ export default function SessionPage() {
 
   if (!id) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-red-600 text-lg font-semibold">
+      <main className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-red-600 text-lg font-semibold">
           No session ID provided.
-        </div>
-      </div>
+        </p>
+      </main>
     );
   }
 
