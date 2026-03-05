@@ -1,4 +1,7 @@
 "use client";
+
+import { useEffect, useState } from "react";
+import { Client } from "@stomp/stompjs";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { GET_SESSION } from "@/lib/graphql/queries";
 import { CLAIM_ITEM } from "@/lib/graphql/mutations";
@@ -9,6 +12,7 @@ interface SessionData {
     partySize: number;
     items: string;
     users: string;
+    parsingStatus: string;
   };
 }
 
@@ -27,6 +31,37 @@ export default function SessionView({ sessionId }: SessionViewProps) {
     variables: { id: sessionId },
   });
   const [claimItem] = useMutation(CLAIM_ITEM);
+  const [parsingStatus, setParsingStatus] = useState<string | null>(null);
+  const [streamedItems, setStreamedItems] = useState<Record<string, Item> | null>(null);
+
+    useEffect(() => {
+      const client = new Client({
+        brokerURL: "ws://localhost:8000/ws",
+        onConnect: () => {
+          console.log("websocket connected, sessionId: ", sessionId);
+
+          client.subscribe(`/topic/session/${sessionId}`, (message) => {
+            const data = JSON.parse(message.body);
+            console.log(" websocket message:", data);
+
+            if (data.status === "PARSING") {
+              setParsingStatus("PARSING");
+            }
+            if (data.status === "ACTIVE") {
+              setParsingStatus("ACTIVE");
+              console.log("items received:", JSON.stringify(data.items));
+              setStreamedItems(data.items);
+            }
+            if (data.status === "FAILURE") {
+              setParsingStatus("FAILURE");
+            }
+        });
+      },
+    });
+
+    client.activate();
+    return () => { client.deactivate(); };
+  }, [sessionId]);
 
   if (loading) {
     return (
@@ -49,9 +84,10 @@ export default function SessionView({ sessionId }: SessionViewProps) {
   }
 
   const session = data.getSessionById;
-  const items: Record<string, Item> = session.items
-    ? JSON.parse(session.items)
-    : {};
+
+  const items: Record<string, Item> = streamedItems
+    ?? (session.items ? JSON.parse(session.items)
+    : {});
   const users: Record<string, string> = session.users
     ? JSON.parse(session.users)
     : {};
@@ -64,6 +100,7 @@ export default function SessionView({ sessionId }: SessionViewProps) {
         variables: { sessionId, itemId, userId: currentUserId },
         refetchQueries: [{ query: GET_SESSION, variables: { id: sessionId } }],
       });
+      setStreamedItems(null);
     } catch (err) {
       console.error("Failed to claim item:", err);
     }
@@ -75,6 +112,7 @@ export default function SessionView({ sessionId }: SessionViewProps) {
         variables: { sessionId, itemId, userId: "" },
         refetchQueries: [{ query: GET_SESSION, variables: { id: sessionId } }],
       });
+      setStreamedItems(null);
     } catch (err) {
       console.error("Failed to unclaim item:", err);
     }
@@ -110,45 +148,67 @@ export default function SessionView({ sessionId }: SessionViewProps) {
 
         <section>
           <h2 className="text-sm font-medium text-gray-500 mb-3">Items</h2>
-          {Object.keys(items).length === 0 ? (
-            <p className="text-gray-400 text-center py-4">No items yet.</p>
-          ) : (
-            <ul className="space-y-3">
-              {Object.entries(items).map(([key, item]) => (
-                <li
-                  key={key}
-                  className="flex items-center justify-between p-4 rounded-2xl border-2 border-gray-100"
-                >
-                  <label>
-                    <p className="font-semibold text-gray-900">{item.name}</p>
-                    <p className="text-sm text-gray-500">
-                      ${Number(item.price).toFixed(2)}
-                    </p>
-                  </label>
-                  {item.claimedBy ? (
-                    item.claimedBy === currentUserId ? (
-                      <button
-                        onClick={() => handleUnclaim(key)}
-                        className="px-4 py-2 bg-gray-200 text-gray-600 font-bold rounded-xl text-sm transition-all hover:bg-gray-300"
-                      >
-                        Unclaim
-                      </button>
-                    ) : (
-                      <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">
-                        {users[item.claimedBy] || item.claimedBy}
-                      </span>
-                    )
-                  ) : (
-                    <button
-                      onClick={() => handleClaim(key)}
-                      className="px-4 py-2 bg-amber-600 text-white font-bold rounded-xl text-sm transition-all hover:bg-amber-700"
-                    >
-                      Claim
-                    </button>
-                  )}
-                </li>
+          
+          {parsingStatus === "PARSING" && (
+            <div className="space-y-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="h-3 bg-black/10 rounded animate-pulse w-full"
+                />
               ))}
-            </ul>
+            </div>
+          )}
+
+          {parsingStatus === "FAILURE" && (
+            <p className="text-gray-400 text-center py-4">
+              Could not parse receipt. Please try again.
+            </p>
+          )}
+
+           {parsingStatus !== "PARSING" && parsingStatus !== "FAILURE" && (
+              <>
+                {Object.keys(items).length === 0 ? (
+                  <p className="text-gray-400 text-center py-4">No items yet.</p>
+                ) : (
+                <ul className="space-y-3">
+                  {Object.entries(items).map(([key, item]) => (
+                    <li
+                      key={key}
+                      className="flex items-center justify-between p-4 rounded-2xl border-2 border-gray-100"
+                    >
+                      <label>
+                        <p className="font-semibold text-gray-900">{item.name}</p>
+                        <p className="text-sm text-gray-500">
+                          ${Number(item.price).toFixed(2)}
+                        </p>
+                      </label>
+                      {item.claimedBy ? (
+                        item.claimedBy === currentUserId ? (
+                          <button
+                            onClick={() => handleUnclaim(key)}
+                            className="px-4 py-2 bg-gray-200 text-gray-600 font-bold rounded-xl text-sm transition-all hover:bg-gray-300"
+                          >
+                            Unclaim
+                          </button>
+                        ) : (
+                          <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-sm">
+                            {users[item.claimedBy] || item.claimedBy}
+                          </span>
+                        )
+                      ) : (
+                        <button
+                          onClick={() => handleClaim(key)}
+                          className="px-4 py-2 bg-amber-600 text-white font-bold rounded-xl text-sm transition-all hover:bg-amber-700"
+                        >
+                          Claim
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
           )}
         </section>
       </article>

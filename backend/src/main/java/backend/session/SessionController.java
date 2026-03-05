@@ -27,7 +27,7 @@ public class SessionController {
 
     @MutationMapping
     public Session uploadReceipt(@Argument String image, @Argument int partySize, @Argument String leaderName) {
-        return service.createFakeSession(partySize, leaderName);
+        return service.uploadReceipt(image, partySize, leaderName);
     }
 
     @MutationMapping
