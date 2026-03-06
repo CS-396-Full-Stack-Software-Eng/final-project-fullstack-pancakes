@@ -3,6 +3,8 @@ package backend.session;
 import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.example.proto.ReceiptParsingEvent;
+import org.springframework.data.redis.core.RedisTemplate;
 
 import java.util.Optional;
 import java.util.LinkedHashMap;
@@ -12,11 +14,14 @@ import java.util.UUID;
 
 @Service
 public class SessionService {
+    private static final String RECEIPT_PARSING_EVENT_QUEUE = "receipt_parsing_event_queue";
     private final SessionRepository sessionRepository;
     private final ObjectMapper mapper = new ObjectMapper();
+    private final RedisTemplate<String, byte[]> redis;
 
-    public SessionService(SessionRepository sessionRepository) {
+    public SessionService(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis) {
         this.sessionRepository = sessionRepository;
+        this.redis = redis;
     }
 
     public Optional<Session> getSessionById(Long sessionId) {
@@ -74,5 +79,36 @@ public class SessionService {
         } catch (Exception e) {
             throw new RuntimeException("could not claim item", e);
         }
+    }
+
+    public Session uploadReceipt(String image, int partySize, String leaderName) {
+        System.out.println(leaderName + " uploaded receipt");
+        Session session = new Session(partySize);
+        session.setParsingStatus(ParsingStatus.INITIALIZING);
+    
+        try {
+            Map<String, String> users = new HashMap<>();
+            users.put(UUID.randomUUID().toString(), leaderName);
+            session.setUsers(mapper.writeValueAsString(users));
+        } catch (Exception e) {
+            throw new RuntimeException("could not serialize session users", e);
+        }
+
+        session = sessionRepository.save(session);
+
+        String eventId = UUID.randomUUID().toString();
+        long timestamp = System.currentTimeMillis();
+
+        ReceiptParsingEvent event = ReceiptParsingEvent.newBuilder()
+            .setEventId(eventId)
+            .setSessionId(String.valueOf(session.getId()))
+            .setImageUrl(image)
+            .setStatus("INITIALIZING")
+            .setCreatedAt(timestamp)
+            .build();
+            
+        redis.opsForList().leftPush(RECEIPT_PARSING_EVENT_QUEUE, event.toByteArray()); 
+
+        return session;
     }
 }

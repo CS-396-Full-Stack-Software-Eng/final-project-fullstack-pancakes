@@ -7,6 +7,7 @@ export const GET_SESSION = gql`
       partySize
       items
       users
+      parsingStatus
     }
   }
 `;
