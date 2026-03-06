@@ -18,3 +18,12 @@ export const UPLOAD_RECEIPT = gql`
     }
   }
 `;
+
+export const ADD_USER_TO_SESSION = gql`
+  mutation AddUserToSession($sessionId: ID!, $name: String!) {
+    addUserToSession(sessionId: $sessionId, name: $name) {
+      id
+      users
+    }
+  }
+`;

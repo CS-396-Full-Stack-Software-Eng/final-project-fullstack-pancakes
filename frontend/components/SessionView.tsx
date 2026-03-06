@@ -33,7 +33,19 @@ export default function SessionView({ sessionId }: SessionViewProps) {
   const [claimItem] = useMutation(CLAIM_ITEM);
   const [parsingStatus, setParsingStatus] = useState<string | null>(null);
   const [streamedItems, setStreamedItems] = useState<Record<string, Item> | null>(null);
+  const [copied, setCopied] = useState(false);
 
+  const joinSessionUrl = `http://localhost:3000/join?sessionId=${sessionId}`;
+  
+  const copyLinkToClipboard = async (): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(joinSessionUrl);
+      console.log('Text copied to clipboard');
+      setCopied(true);
+    } catch (err) {
+      console.error('Failed to copy: ', err);
+  }
+};
     useEffect(() => {
       const client = new Client({
         brokerURL: "ws://localhost:8000/ws",
@@ -85,7 +97,8 @@ export default function SessionView({ sessionId }: SessionViewProps) {
     ? JSON.parse(session.users)
     : {};
 
-  const currentUserId = Object.keys(users)[0] || "";
+  const currentUserId = 
+  (typeof window !== "undefined" ? localStorage.getItem(`userId_${sessionId}`) : null) || Object.keys(users)[0] || "";
 
   const handleClaim = async (itemId: string) => {
     try {
@@ -113,6 +126,17 @@ export default function SessionView({ sessionId }: SessionViewProps) {
 
   return (
     <main className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+      <article className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+        <p className="text-gray-500 mt-2">
+          Share this link
+        </p>
+        <button
+          onClick={copyLinkToClipboard}
+          className="px-4 py-2 bg-amber-600 text-white rounded-xl text-sm font-bold"
+        >
+          {copied ? "Copied!" : "Copy Link"}
+        </button>
+      </article>
       <article className="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
         <header className="text-center mb-6">
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">

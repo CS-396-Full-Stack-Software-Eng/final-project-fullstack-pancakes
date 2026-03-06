@@ -111,4 +111,23 @@ public class SessionService {
 
         return session;
     }
+
+    public Session addUserToSession(Long sessionId, String name) {
+        System.out.println(name + " is joining session number " + sessionId);
+
+        Session session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new RuntimeException("session not found"));
+
+        try {
+            Map<String, String> users = session.getUsers() != null 
+            ? mapper.readValue(session.getUsers(), new TypeReference<Map<String, String>>() {})
+            : new HashMap<>();
+
+            users.put(UUID.randomUUID().toString(), name);
+            session.setUsers(mapper.writeValueAsString(users));
+            return sessionRepository.save(session);
+        } catch (Exception e) {
+            throw new RuntimeException("could not add user to session", e);
+        }
+    }
 }
