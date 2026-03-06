@@ -44,17 +44,10 @@ export default function SessionView({ sessionId }: SessionViewProps) {
             const data = JSON.parse(message.body);
             console.log(" websocket message:", data);
 
-            if (data.status === "PARSING") {
-              setParsingStatus("PARSING");
-            }
-            if (data.status === "ACTIVE") {
-              setParsingStatus("ACTIVE");
-              console.log("items received:", JSON.stringify(data.items));
-              setStreamedItems(data.items);
-            }
-            if (data.status === "FAILURE") {
-              setParsingStatus("FAILURE");
-            }
+            data.status === "PARSING" && setParsingStatus("PARSING");
+            data.status === "ACTIVE" && setParsingStatus("ACTIVE");
+            data.status === "ACTIVE" && setStreamedItems(data.items);
+            data.status === "FAILURE" && setParsingStatus("FAILURE");
         });
       },
     });
