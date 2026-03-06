@@ -75,7 +75,7 @@ public ReceiptParsingWorker(RedisTemplate<String, byte[]> redis, SimpMessagingTe
 
     socket.convertAndSend("/topic/session/" + sessionId, (Object) Map.of(
       "sessionId", sessionId,
-      "status", "PARSING"
+      "status", ParsingStatus.PARSING
       ));
 
     try {
@@ -89,7 +89,7 @@ public ReceiptParsingWorker(RedisTemplate<String, byte[]> redis, SimpMessagingTe
         sessionRepository.save(session);
 
         socket.convertAndSend("/topic/session/" + sessionId, (Object) Map.of(
-            "status", "ACTIVE",
+            "status", ParsingStatus.ACTIVE,
             "sessionId", sessionId,
             "items", items
         ));
@@ -99,7 +99,7 @@ public ReceiptParsingWorker(RedisTemplate<String, byte[]> redis, SimpMessagingTe
       sessionRepository.save(session);
       
         socket.convertAndSend("/topic/session/" + sessionId, (Object) Map.of(
-            "status", "FAILURE",
+            "status", ParsingStatus.FAILURE,
             "sessionId", sessionId,
             "message", "Receipt could not be parsed"
         ));

@@ -36,4 +36,4 @@ build/
 .env.local
 
 # brock created this so he didnt have to keep doing the export commands in terminal LOL
-setup.bash.env
+setup.bash
