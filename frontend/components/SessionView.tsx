@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "@apollo/client/react";
 import { ApolloError } from "@apollo/client";
 import { GET_SESSION } from "@/lib/graphql/queries";
 import { CLAIM_ITEM } from "@/lib/graphql/mutations";
+import Fuse from "fuse.js";
 
 interface SessionData {
   getSessionById: {
@@ -43,6 +44,7 @@ export default function SessionView({ sessionId }: SessionViewProps) {
   > | null>(null);
   const [copied, setCopied] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const joinSessionUrl = `http://localhost:3000/join?sessionId=${sessionId}`;
 
@@ -109,6 +111,22 @@ export default function SessionView({ sessionId }: SessionViewProps) {
     streamedItems ?? (session.items ? JSON.parse(session.items) : {});
   const users: Record<string, string> =
     streamedUsers ?? (session.users ? JSON.parse(session.users) : {});
+
+  // create item entries for Fuse.js
+  const itemEntries = Object.entries(items);
+  // only items that get at least a 0.4 match score
+  // fuse searches on index 1 (item) then by name
+  const filteredEntries = searchQuery
+    ? new Fuse(itemEntries, {
+        keys: ["1.name"],
+        threshold: 0.4,
+        includeScore: true,
+      })
+        .search(searchQuery)
+        .map((r) => r.item)
+    : itemEntries;
+
+  console.log(filteredEntries);
 
   const currentUserId =
     (typeof window !== "undefined"
@@ -183,6 +201,13 @@ export default function SessionView({ sessionId }: SessionViewProps) {
 
         <section>
           <h2 className="text-sm font-medium text-gray-500 mb-3">Items</h2>
+          <input
+            type="text"
+            placeholder="Search items..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 mb-4 text-gray-900"
+          />
 
           {claimError && (
             <div className="mb-3 px-4 py-2 bg-red-100 text-red-700 rounded-xl text-sm font-medium">
@@ -209,11 +234,13 @@ export default function SessionView({ sessionId }: SessionViewProps) {
 
           {parsingStatus !== "PARSING" && parsingStatus !== "FAILURE" && (
             <>
-              {Object.keys(items).length === 0 ? (
-                <p className="text-gray-400 text-center py-4">No items yet.</p>
+              {filteredEntries.length === 0 ? (
+                <p className="text-gray-400 text-center py-4">
+                  {searchQuery ? "No matching items." : "No items yet."}
+                </p>
               ) : (
                 <ul className="space-y-3">
-                  {Object.entries(items).map(([key, item]) => (
+                  {filteredEntries.map(([key, item]) => (
                     <li
                       key={key}
                       className="flex items-center justify-between p-4 rounded-2xl border-2 border-gray-100"
