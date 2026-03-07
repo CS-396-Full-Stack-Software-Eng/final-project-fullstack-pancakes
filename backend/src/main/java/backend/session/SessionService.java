@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.proto.ReceiptParsingEvent;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.Optional;
 import java.util.LinkedHashMap;
@@ -18,10 +19,12 @@ public class SessionService {
     private final SessionRepository sessionRepository;
     private final ObjectMapper mapper = new ObjectMapper();
     private final RedisTemplate<String, byte[]> redis;
+    private final SimpMessagingTemplate socket;
 
-    public SessionService(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis) {
+    public SessionService(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis, SimpMessagingTemplate socket) {
         this.sessionRepository = sessionRepository;
         this.redis = redis;
+        this.socket = socket;
     }
 
     public Optional<Session> getSessionById(Long sessionId) {
@@ -140,7 +143,17 @@ public class SessionService {
 
             users.put(UUID.randomUUID().toString(), name);
             session.setUsers(mapper.writeValueAsString(users));
-            return sessionRepository.save(session);
+            session = sessionRepository.save(session); // update the session
+
+            // also broadcast message so the other users' frontends can update,
+            // account for new user.
+            socket.convertAndSend("/topic/session/" + sessionId, (Object) Map.of(
+                "status", "USER_JOINED",
+                "sessionId", String.valueOf(sessionId),
+                "users", users
+            ));
+
+            return session;
         } catch (Exception e) {
             throw new RuntimeException("could not add user to session", e);
         }
