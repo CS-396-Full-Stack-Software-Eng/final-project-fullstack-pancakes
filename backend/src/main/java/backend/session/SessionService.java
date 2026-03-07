@@ -120,8 +120,8 @@ public class SessionService {
 
         try {
             Map<String, String> users = session.getUsers() != null 
-            ? mapper.readValue(session.getUsers(), new TypeReference<Map<String, String>>() {})
-            : new HashMap<>();
+                ? mapper.readValue(session.getUsers(), new TypeReference<Map<String, String>>() {})
+                : new HashMap<>();
 
             users.put(UUID.randomUUID().toString(), name);
             session.setUsers(mapper.writeValueAsString(users));

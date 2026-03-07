@@ -97,8 +97,9 @@ export default function SessionView({ sessionId }: SessionViewProps) {
     ? JSON.parse(session.users)
     : {};
 
-  const currentUserId = 
-  (typeof window !== "undefined" ? localStorage.getItem(`userId_${sessionId}`) : null) || Object.keys(users)[0] || "";
+  const currentUserId = (typeof window !== "undefined" 
+    ? localStorage.getItem(`userId_${sessionId}`) 
+    : null) || Object.keys(users)[0] || "";
 
   const handleClaim = async (itemId: string) => {
     try {
