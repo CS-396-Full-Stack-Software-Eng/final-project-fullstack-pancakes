@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Client } from "@stomp/stompjs";
 import { useQuery, useMutation } from "@apollo/client/react";
+import { ApolloError } from "@apollo/client";
 import { GET_SESSION } from "@/lib/graphql/queries";
 import { CLAIM_ITEM } from "@/lib/graphql/mutations";
 
@@ -34,6 +35,7 @@ export default function SessionView({ sessionId }: SessionViewProps) {
   const [parsingStatus, setParsingStatus] = useState<string | null>(null);
   const [streamedItems, setStreamedItems] = useState<Record<string, Item> | null>(null);
   const [copied, setCopied] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
 
   const joinSessionUrl = `http://localhost:3000/join?sessionId=${sessionId}`;
   
@@ -102,14 +104,17 @@ export default function SessionView({ sessionId }: SessionViewProps) {
     : null) || Object.keys(users)[0] || "";
 
   const handleClaim = async (itemId: string) => {
+    setClaimError(null);
     try {
       await claimItem({
         variables: { sessionId, itemId, userId: currentUserId },
         refetchQueries: [{ query: GET_SESSION, variables: { id: sessionId } }],
       });
       setStreamedItems(null);
-    } catch (err) {
-      console.error("Failed to claim item:", err);
+    } catch (err: ApolloError) {
+      const message = err?.graphQLErrors?.[0]?.message;
+      setClaimError(message ?? "Failed to claim item.");
+      setTimeout(() => setClaimError(null), 3000);
     }
   };
 
@@ -166,6 +171,12 @@ export default function SessionView({ sessionId }: SessionViewProps) {
 
         <section>
           <h2 className="text-sm font-medium text-gray-500 mb-3">Items</h2>
+
+          {claimError && (
+            <div className="mb-3 px-4 py-2 bg-red-100 text-red-700 rounded-xl text-sm font-medium">
+              {claimError}
+            </div>
+          )}
           
           {parsingStatus === "PARSING" && (
             <div className="space-y-3">
