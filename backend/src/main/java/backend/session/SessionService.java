@@ -64,8 +64,8 @@ public class SessionService {
         try {
             Map<String, Map<String, Object>> items = mapper.readValue(
                     session.getItems(),
-                    new TypeReference<Map<String, Map<String, Object>>>() {}
-            );
+                    new TypeReference<Map<String, Map<String, Object>>>() {
+                    });
 
             if (!items.containsKey(itemId)) {
                 throw new RuntimeException("item not found");
@@ -85,7 +85,7 @@ public class SessionService {
         System.out.println(leaderName + " uploaded receipt");
         Session session = new Session(partySize);
         session.setParsingStatus(ParsingStatus.INITIALIZING);
-    
+
         try {
             Map<String, String> users = new HashMap<>();
             users.put(UUID.randomUUID().toString(), leaderName);
@@ -100,14 +100,14 @@ public class SessionService {
         long timestamp = System.currentTimeMillis();
 
         ReceiptParsingEvent event = ReceiptParsingEvent.newBuilder()
-            .setEventId(eventId)
-            .setSessionId(String.valueOf(session.getId()))
-            .setImageUrl(image)
-            .setStatus("INITIALIZING")
-            .setCreatedAt(timestamp)
-            .build();
-            
-        redis.opsForList().leftPush(RECEIPT_PARSING_EVENT_QUEUE, event.toByteArray()); 
+                .setEventId(eventId)
+                .setSessionId(String.valueOf(session.getId()))
+                .setImageUrl(image)
+                .setStatus("INITIALIZING")
+                .setCreatedAt(timestamp)
+                .build();
+
+        redis.opsForList().leftPush(RECEIPT_PARSING_EVENT_QUEUE, event.toByteArray());
 
         return session;
     }

@@ -13,35 +13,40 @@ import org.springframework.stereotype.Component;
 
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-
+import jakarta.annotation.PreDestroy;
 import backend.session.Session;
 import backend.session.SessionRepository;
+import backend.service.ReceiptParsingService;
 import backend.session.ParsingStatus;
-import backend.service.MockReceiptParsingService;
-
 
 @Component
 public class ReceiptParsingWorker {
+  private volatile boolean running = true;
   private final RedisTemplate<String, byte[]> redis;
   private final SimpMessagingTemplate socket;
-  private final MockReceiptParsingService mockParsingService;
+  private final ReceiptParsingService parsingService;
   private final SessionRepository sessionRepository;
   private final ObjectMapper mapper = new ObjectMapper();
 
-
-public ReceiptParsingWorker(RedisTemplate<String, byte[]> redis, SimpMessagingTemplate socket, MockReceiptParsingService mockParsingService, SessionRepository sessionRepository) {
+  public ReceiptParsingWorker(RedisTemplate<String, byte[]> redis, SimpMessagingTemplate socket,
+      ReceiptParsingService parsingService, SessionRepository sessionRepository) {
     this.redis = redis;
     this.socket = socket;
-    this.mockParsingService = mockParsingService;
+    this.parsingService = parsingService;
     this.sessionRepository = sessionRepository;
-}
+  }
+
+  @PreDestroy
+  public void stopWorker() {
+    running = false;
+  }
 
   @EventListener(ApplicationReadyEvent.class)
   public void startWorker() {
     new Thread(() -> {
-      System.out
-          .println("worker is listening for events");
-      while (true) {
+      System.out.println("worker is listening for events");
+
+      while (running) {
         try {
           byte[] payload = redis.opsForList().rightPop("receipt_parsing_event_queue", Duration.ofSeconds(30));
 
@@ -54,6 +59,16 @@ public ReceiptParsingWorker(RedisTemplate<String, byte[]> redis, SimpMessagingTe
           if (e.getMessage() != null && e.getMessage().contains("timed out")) {
             continue;
           }
+
+          if (!running)
+            break;
+
+          // If Redis connection was shut down before our @PreDestroy ran, exit cleanly
+          if (e instanceof IllegalStateException && e.getMessage() != null &&
+              (e.getMessage().contains("STOP") || e.getMessage().contains("destroyed"))) {
+            break;
+          }
+
           System.err.println("There was an error processing event: " + e.getMessage());
           e.printStackTrace();
         }
@@ -67,42 +82,39 @@ public ReceiptParsingWorker(RedisTemplate<String, byte[]> redis, SimpMessagingTe
     Session session = sessionRepository.findById(Long.valueOf(sessionId)).orElseThrow();
     session.setParsingStatus(ParsingStatus.PARSING);
     sessionRepository.save(session);
-    
+
     // give the frontend some time to navigate and subscribe
     try {
-    Thread.sleep(1500); 
-    } catch (InterruptedException e) {}
+      Thread.sleep(1500);
+    } catch (InterruptedException e) {
+    }
 
     socket.convertAndSend("/topic/session/" + sessionId, (Object) Map.of(
-      "sessionId", sessionId,
-      "status", ParsingStatus.PARSING
-      ));
+        "sessionId", sessionId,
+        "status", ParsingStatus.PARSING));
 
     try {
-        // call mock parsing service (not using grpc yet)
-        Map<String, Map<String, Object>> items = mockParsingService.parseReceipt(event.getImageUrl());
+      Map<String, Map<String, Object>> items = parsingService.parseReceipt(event.getImageUrl());
 
-        session.setItems(mapper.writeValueAsString(items));
-        sessionRepository.save(session);
+      session.setItems(mapper.writeValueAsString(items));
+      sessionRepository.save(session);
 
-        session.setParsingStatus(ParsingStatus.ACTIVE);
-        sessionRepository.save(session);
+      session.setParsingStatus(ParsingStatus.ACTIVE);
+      sessionRepository.save(session);
 
-        socket.convertAndSend("/topic/session/" + sessionId, (Object) Map.of(
-            "status", ParsingStatus.ACTIVE,
-            "sessionId", sessionId,
-            "items", items
-        ));
+      socket.convertAndSend("/topic/session/" + sessionId, (Object) Map.of(
+          "status", ParsingStatus.ACTIVE,
+          "sessionId", sessionId,
+          "items", items));
 
     } catch (Exception e) {
       session.setParsingStatus(ParsingStatus.FAILURE);
       sessionRepository.save(session);
-      
-        socket.convertAndSend("/topic/session/" + sessionId, (Object) Map.of(
-            "status", ParsingStatus.FAILURE,
-            "sessionId", sessionId,
-            "message", "Receipt could not be parsed"
-        ));
-      }
+
+      socket.convertAndSend("/topic/session/" + sessionId, (Object) Map.of(
+          "status", ParsingStatus.FAILURE,
+          "sessionId", sessionId,
+          "message", "Receipt could not be parsed"));
+    }
   }
 }
