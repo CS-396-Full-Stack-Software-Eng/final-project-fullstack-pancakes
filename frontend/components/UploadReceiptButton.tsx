@@ -6,6 +6,7 @@ interface UploadReceiptData {
   uploadReceipt: {
     id: string;
     partySize: number;
+    users: string;
   };
 }
 
@@ -32,7 +33,17 @@ export default function UploadReceiptButton({
         },
       });
       if (data?.uploadReceipt?.id) {
-        router.push(`/createSession?id=${data.uploadReceipt.id}`);
+        const sessionId = data.uploadReceipt.id;
+
+        if (data.uploadReceipt.users) {
+          const users = JSON.parse(data.uploadReceipt.users);
+          const userId = Object.keys(users)[0];
+          if (userId) {
+            localStorage.setItem(`userId_${sessionId}`, userId);
+          }
+        }
+
+        router.push(`/createSession?id=${sessionId}`);
       }
     } catch (err) {
       console.error("Failed to create session:", err);

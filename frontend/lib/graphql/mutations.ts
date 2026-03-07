@@ -11,10 +11,19 @@ export const CLAIM_ITEM = gql`
 `;
 
 export const UPLOAD_RECEIPT = gql`
-  mutation UploadReceipt($image: String!, $partySize: Int!, $leaderName: String!) {
-    uploadReceipt(image: $image, partySize: $partySize, leaderName: $leaderName) {
+  mutation UploadReceipt(
+    $image: String!
+    $partySize: Int!
+    $leaderName: String!
+  ) {
+    uploadReceipt(
+      image: $image
+      partySize: $partySize
+      leaderName: $leaderName
+    ) {
       id
       partySize
+      users # session leader needs to be able to store their userId
     }
   }
 `;
