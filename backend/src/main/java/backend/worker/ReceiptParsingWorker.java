@@ -7,6 +7,7 @@ import java.util.Optional;
 import com.example.proto.ReceiptParsingEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.annotation.PreDestroy;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -22,26 +23,31 @@ import backend.service.MockReceiptParsingService;
 
 @Component
 public class ReceiptParsingWorker {
+  private volatile boolean running = true;
   private final RedisTemplate<String, byte[]> redis;
   private final SimpMessagingTemplate socket;
   private final MockReceiptParsingService mockParsingService;
   private final SessionRepository sessionRepository;
   private final ObjectMapper mapper = new ObjectMapper();
 
+  public ReceiptParsingWorker(RedisTemplate<String, byte[]> redis, SimpMessagingTemplate socket, MockReceiptParsingService mockParsingService, SessionRepository sessionRepository) {
+      this.redis = redis;
+      this.socket = socket;
+      this.mockParsingService = mockParsingService;
+      this.sessionRepository = sessionRepository;
+  }
 
-public ReceiptParsingWorker(RedisTemplate<String, byte[]> redis, SimpMessagingTemplate socket, MockReceiptParsingService mockParsingService, SessionRepository sessionRepository) {
-    this.redis = redis;
-    this.socket = socket;
-    this.mockParsingService = mockParsingService;
-    this.sessionRepository = sessionRepository;
-}
+  @PreDestroy
+  public void stopWorker() {
+    running = false;
+  }
 
   @EventListener(ApplicationReadyEvent.class)
   public void startWorker() {
     new Thread(() -> {
-      System.out
-          .println("worker is listening for events");
-      while (true) {
+      System.out.println("worker is listening for events");
+      
+      while (running) {
         try {
           byte[] payload = redis.opsForList().rightPop("receipt_parsing_event_queue", Duration.ofSeconds(30));
 
@@ -50,10 +56,20 @@ public ReceiptParsingWorker(RedisTemplate<String, byte[]> redis, SimpMessagingTe
             System.out.println("worker received event with ID: " + event.getEventId());
             parseReceipt(event);
           }
-        } catch (Exception e) {
+        } 
+        catch (Exception e) {
           if (e.getMessage() != null && e.getMessage().contains("timed out")) {
             continue;
           }
+
+          if (!running) break;
+
+          // If Redis connection was shut down before our @PreDestroy ran, exit cleanly
+          if (e instanceof IllegalStateException && e.getMessage() != null &&
+              (e.getMessage().contains("STOP") || e.getMessage().contains("destroyed"))) {
+            break;
+          }
+
           System.err.println("There was an error processing event: " + e.getMessage());
           e.printStackTrace();
         }
@@ -95,9 +111,9 @@ public ReceiptParsingWorker(RedisTemplate<String, byte[]> redis, SimpMessagingTe
         ));
 
     } catch (Exception e) {
-      session.setParsingStatus(ParsingStatus.FAILURE);
-      sessionRepository.save(session);
-      
+        session.setParsingStatus(ParsingStatus.FAILURE);
+        sessionRepository.save(session);
+        
         socket.convertAndSend("/topic/session/" + sessionId, (Object) Map.of(
             "status", ParsingStatus.FAILURE,
             "sessionId", sessionId,

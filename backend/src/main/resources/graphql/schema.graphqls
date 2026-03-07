@@ -1,4 +1,10 @@
 # Must match method names in SessionController class
+
+type JoinSessionResult {
+    session: Session
+    newUserId: String
+}
+
 type Query {
     getSessionById(id: ID!): Session
 }
@@ -7,6 +13,7 @@ type Mutation {
     createSession(partySize: Int!): Session
     uploadReceipt(image: String!, partySize: Int!, leaderName: String!): Session
     claimItem(sessionId: ID!, itemId: ID!, userId: ID!): Session
+    addUserToSession(sessionId: ID!, name: String!): JoinSessionResult
 }
 
 # Must match fields in Session class
