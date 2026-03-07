@@ -7,6 +7,7 @@ import { ApolloError } from "@apollo/client";
 import { GET_SESSION } from "@/lib/graphql/queries";
 import { CLAIM_ITEM } from "@/lib/graphql/mutations";
 import Fuse from "fuse.js";
+import { metaphone } from "metaphone";
 
 interface SessionData {
   getSessionById: {
@@ -113,20 +114,49 @@ export default function SessionView({ sessionId }: SessionViewProps) {
   const users: Record<string, string> =
     streamedUsers ?? (session.users ? JSON.parse(session.users) : {});
 
+
   // create item entries for Fuse.js
   const itemEntries = Object.entries(items);
   // only items that get at least a 0.4 match score
   // fuse searches on index 1 (item) then by name
   const filteredEntries = searchQuery
-    ? new Fuse(itemEntries, {
-        keys: ["1.name"],
+    ? (()=> {
+      // i had to manually add alias layer/mapping of coke <=> coca-cola
+      const search_mappings: Record<string, string> = {
+      'coca cola': 'coke',
+      'coca-cola': 'coke',
+      'coca-': 'coke',
+      'coca-c': 'coke',
+      'coca-co': 'coke',
+      'coca-col': 'coke',
+      'cola': 'coke',
+      'coca': 'coke',
+      'coke': 'coke',
+      };
+      const query = searchQuery.toLowerCase().trim();
+      const searchFor = search_mappings[query] || query;
+
+      const searchMetaphone = metaphone(searchFor);
+
+      return new Fuse(itemEntries, {
+      
+        keys: ["1.name", {
+          name: "1.name", 
+            getFn: (obj) => {
+              const name = obj[1]?.name || "";
+              // converts item name to phonetic code for fuzzy matching
+              return metaphone(name.toLowerCase());
+            }
+
+        }],
         threshold: 0.4,
         includeScore: true,
       })
-        .search(searchQuery)
+        .search(searchFor)
         .map((r) => r.item)
-    : itemEntries;
 
+    })()
+    : itemEntries;
   console.log(filteredEntries);
 
   const currentUserId =
