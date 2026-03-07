@@ -136,19 +136,27 @@ export default function SessionView({ sessionId }: SessionViewProps) {
       const query = searchQuery.toLowerCase().trim();
       const searchFor = search_mappings[query] || query;
 
-      const searchMetaphone = metaphone(searchFor);
-
-      return new Fuse(itemEntries, {
+      let searchMetaphone = '';
+      try{
+        searchMetaphone = metaphone(searchFor);
+      } catch (err){
+        console.error("Metaphone failed for search item:", searchFor, err)
+      }
       
+      return new Fuse(itemEntries, {
         keys: ["1.name", {
           name: "1.name", 
             getFn: (obj) => {
               const name = obj[1]?.name || "";
-              // converts item name to phonetic code for fuzzy matching
-              return metaphone(name.toLowerCase());
+              try{
+                // converts item name to phonetic code for fuzzy matching
+                return metaphone(name.toLowerCase());
+              } catch(err){
+                  console.error('Metaphone failed for item:', name, err);
+                return name.toLowerCase(); // goes to original name
+              }
             }
-
-        }],
+         }],
         threshold: 0.4,
         includeScore: true,
       })
