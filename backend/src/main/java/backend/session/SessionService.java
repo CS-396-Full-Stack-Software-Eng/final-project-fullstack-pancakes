@@ -72,11 +72,26 @@ public class SessionService {
             }
 
             Map<String, Object> item = items.get(itemId);
-            item.put("claimedBy", userId);
 
+            // check if item is already claimed by someone else and throw error if so
+            if (item.get("claimedBy") != null && !item.get("claimedBy").toString().isEmpty()) {
+                throw new RuntimeException("item already claimed");
+            }
+
+            // if not, then try to claim the item, and throw error if receive one back (via catch logic)
+            item.put("claimedBy", userId);
             session.setItems(mapper.writeValueAsString(items));
             return sessionRepository.save(session);
         } catch (Exception e) {
+            // go through chain of errors to see if specifically because item was already claimed
+            Throwable cause = e;
+            while (cause != null) {
+                String errorMessage = cause.getMessage();
+                if (errorMessage != null && errorMessage.contains("Two users cannot claim the same item")) {
+                    throw new RuntimeException("item already claimed", e);
+                }
+                cause = cause.getCause();
+            }
             throw new RuntimeException("could not claim item", e);
         }
     }
