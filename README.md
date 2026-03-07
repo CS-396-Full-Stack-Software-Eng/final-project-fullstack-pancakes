@@ -45,7 +45,7 @@
 
 Read more about frontend dependencies [here](./frontend/package-lock.json) and backend dependencies [here](./backend/pom.xml).
 
-## Installation and Local Development Instructions
+## Setting up Local Development for the First Time
 
 ### Frontend
 
@@ -74,6 +74,11 @@ In order to run the backend for the first time, there are a couple of steps that
 - **First Database Run**
   - Once you have all of the above ready, you then need to follow all of the steps [in this tutorial](https://medium.com/@ianktoo/my-first-time-setting-up-supabase-locally-and-why-it-almost-broke-me-the-quick-version-a17bab7ca1b0) to properly run your database for the first time.
 
+Then, in the `backend` directory, you'll want to:
+- Run `docker redis start` to start up the Redis Message Queue.
+- Run `npx supabase start` to start up the Supabase connection.
+- Run `mvn spring-boot:run` to run the server.
+
 On all subsequent runs of your database, you just want to make sure that you have the most recent version of the supabase directory on your branch before you you run the database using `npx supabase start` in the `backend` directory. Make sure you also re-configure your local environment variables as needed whenever returning to the backend repo.
 
 To run the server, you need to executive `mvn spring-boot:run` in the `backend` directory.
@@ -88,8 +93,30 @@ query {
 }
 ```
 
-To stop running the Docker and DB, you will need to execute `npx supabase stop` in your terminal.
+To stop running the database, you will need to execute `npx supabase stop` in your backend terminal.
+To stop running the Redis Message Queue, you will need to execute `docker redis stop` in your backend terminal.
 To stop running the server, you can simply use the `CTRL + C` shortcut in the terminal running it.
+
+## Subsequent Local Development Runs
+
+First, configure your local environment variables are needed by running `export DB_VARIABLE_NAME='variable_value'` for the DB_USERNAME, DB_PASSWORD, and DB_URL. 
+
+Next, navigate to the `backend` folder and start up everything on the backend:
+1) Confirm you have the most recent version of the `supabase` directory on your branch.
+2) Run the following to make sure you're dependencies and target folder are up to date based on any changes: `mvn clean install`.
+3) Open Docker Desktop on your machine.
+4) Run the database: `npx supabase start`.
+5) Start up the Redis Message Queue: `docker redis start`.
+6) Run the server: `mvn spring-boot:run`.
+
+In a different terminal, navigate to the `frontend` folder to start up the frontend:
+1) Reinstall dependencies just in case they've changed: `npm install`.
+2) Run the client app: `npm run dev`.
+
+To stop local development:
+- To stop running the database, you will need to execute `npx supabase stop` in the `backend` directory.
+- To stop running the Redis Message queue, you will need to execute `docker redis stop` in the `backend` directory.
+- You can simply use `CTRL + C` to stop the server and client app in the terminals they're running in.
 
 ## Troubleshooting Supabase Migration History Mismatches
 ```
