@@ -34,4 +34,9 @@ public class SessionController {
     public Session claimItem(@Argument Long sessionId, @Argument String itemId, @Argument String userId) {
         return service.claimItem(sessionId, itemId, userId);
     }
+
+    @MutationMapping
+    public JoinSessionResult addUserToSession(@Argument Long sessionId, @Argument String name) {
+        return service.addUserToSession(sessionId, name);
+    }
 }

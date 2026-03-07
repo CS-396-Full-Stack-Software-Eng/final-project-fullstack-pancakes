@@ -7,6 +7,7 @@ import java.util.Optional;
 import com.example.proto.ReceiptParsingEvent;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import jakarta.annotation.PreDestroy;
 import org.springframework.context.event.EventListener;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
@@ -55,7 +56,8 @@ public class ReceiptParsingWorker {
             System.out.println("worker received event with ID: " + event.getEventId());
             parseReceipt(event);
           }
-        } catch (Exception e) {
+        } 
+        catch (Exception e) {
           if (e.getMessage() != null && e.getMessage().contains("timed out")) {
             continue;
           }

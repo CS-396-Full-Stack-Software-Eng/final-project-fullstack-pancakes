@@ -15,6 +15,19 @@ export const UPLOAD_RECEIPT = gql`
     uploadReceipt(image: $image, partySize: $partySize, leaderName: $leaderName) {
       id
       partySize
+      users
+    }
+  }
+`;
+
+export const ADD_USER_TO_SESSION = gql`
+  mutation AddUserToSession($sessionId: ID!, $name: String!) {
+    addUserToSession(sessionId: $sessionId, name: $name) {
+      newUserId
+      session {
+        id
+        users
+      }
     }
   }
 `;
