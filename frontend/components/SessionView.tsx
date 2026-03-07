@@ -48,6 +48,7 @@ export default function SessionView({ sessionId }: SessionViewProps) {
 
   const joinSessionUrl = `http://localhost:3000/join?sessionId=${sessionId}`;
 
+  // copy link
   const copyLinkToClipboard = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(joinSessionUrl);
