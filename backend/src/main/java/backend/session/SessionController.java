@@ -36,7 +36,7 @@ public class SessionController {
     }
 
     @MutationMapping
-    public Session addUserToSession(@Argument Long sessionId, @Argument String name) {
+    public JoinSessionResult addUserToSession(@Argument Long sessionId, @Argument String name) {
         return service.addUserToSession(sessionId, name);
     }
 }

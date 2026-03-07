@@ -7,8 +7,10 @@ import { ADD_USER_TO_SESSION } from "@/lib/graphql/mutations";
 
 interface AddUserData {
   addUserToSession: {
-    id: string;
-    users: string;
+    newUserId: string;
+    session: {
+      id: string;
+    };
   };
 }
 
@@ -29,18 +31,11 @@ export default function JoinSessionForm() {
         },
       });
     
-      if (data?.addUserToSession?.id) {
-        const users = JSON.parse(data.addUserToSession.users);
-        const userId = Object.entries(users).find(
-          ([_, userName]) => userName === name
-        )?.[0];
-        
+      const userId = data?.addUserToSession.newUserId;
         if (userId) {
           localStorage.setItem(`userId_${sessionId}`, userId);
         }
-
-        router.push(`/createSession?id=${data.addUserToSession.id}`);
-      }
+        router.push(`/createSession?id=${sessionId}`);
     } catch (err) {
       console.error("Failed to add user:", err);
     }

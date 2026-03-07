@@ -1,3 +1,5 @@
+"use client";
+
 import { useMutation } from "@apollo/client/react";
 import { useRouter } from "next/navigation";
 import { UPLOAD_RECEIPT } from "@/lib/graphql/mutations";
@@ -34,14 +36,9 @@ export default function UploadReceiptButton({
       });
       if (data?.uploadReceipt?.id) {
         const sessionId = data.uploadReceipt.id;
-
-        if (data.uploadReceipt.users) {
-          const users = JSON.parse(data.uploadReceipt.users);
-          const userId = Object.keys(users)[0];
-          if (userId) {
-            localStorage.setItem(`userId_${sessionId}`, userId);
-          }
-        }
+        const users = JSON.parse(data.uploadReceipt.users);
+        const leaderId = Object.keys(users)[0];
+        localStorage.setItem(`userId_${sessionId}`, leaderId);
 
         router.push(`/createSession?id=${sessionId}`);
       }
