@@ -77,14 +77,25 @@ public class SessionService {
             Map<String, Object> item = items.get(itemId);
 
             // check if item is already claimed by someone else and throw error if so
-            if (item.get("claimedBy") != null && !item.get("claimedBy").toString().isEmpty()) {
+            // allow unclaiming (userId is empty)
+            if (item.get("claimedBy") != null && !item.get("claimedBy").toString().isEmpty()
+                    && userId != null && !userId.isEmpty()) {
                 throw new RuntimeException("item already claimed");
             }
 
             // if not, then try to claim the item, and throw error if receive one back (via catch logic)
             item.put("claimedBy", userId);
             session.setItems(mapper.writeValueAsString(items));
-            return sessionRepository.save(session);
+            Session savedSession = sessionRepository.save(session);
+
+            // broadcast item_claim event
+            socket.convertAndSend("/topic/session/" + sessionId, (Object) Map.of(
+                "status", "ITEM_CLAIMED",
+                "sessionId", String.valueOf(sessionId),
+                "items", items
+            ));
+
+            return savedSession;
         } catch (Exception e) {
             // go through chain of errors to see if specifically because item was already claimed
             Throwable cause = e;

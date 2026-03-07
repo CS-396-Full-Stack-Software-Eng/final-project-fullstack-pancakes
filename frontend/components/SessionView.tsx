@@ -71,6 +71,8 @@ export default function SessionView({ sessionId }: SessionViewProps) {
           data.status === "FAILURE" && setParsingStatus("FAILURE");
           // new status for when a user has joined --> update users
           data.status === "USER_JOINED" && setStreamedUsers(data.users);
+          // update items when another user claims/unclaims
+          data.status === "ITEM_CLAIMED" && setStreamedItems(data.items);
         });
       },
     });
