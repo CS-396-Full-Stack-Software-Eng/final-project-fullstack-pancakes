@@ -112,7 +112,7 @@ public class SessionService {
         return session;
     }
 
-    public Session addUserToSession(Long sessionId, String name) {
+    public JoinSessionResult addUserToSession(Long sessionId, String name) {
         System.out.println(name + " is joining session number " + sessionId);
 
         Session session = sessionRepository.findById(sessionId)
@@ -123,9 +123,11 @@ public class SessionService {
                 ? mapper.readValue(session.getUsers(), new TypeReference<Map<String, String>>() {})
                 : new HashMap<>();
 
-            users.put(UUID.randomUUID().toString(), name);
+            String userId = UUID.randomUUID().toString();
+            users.put(userId, name);
             session.setUsers(mapper.writeValueAsString(users));
-            return sessionRepository.save(session);
+            Session savedSession = sessionRepository.save(session);
+            return new JoinSessionResult(userId, savedSession);
         } catch (Exception e) {
             throw new RuntimeException("could not add user to session", e);
         }
