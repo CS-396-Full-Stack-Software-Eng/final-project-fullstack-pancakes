@@ -51,6 +51,7 @@ export default function SessionView({ sessionId }: SessionViewProps) {
       await navigator.clipboard.writeText(joinSessionUrl);
       console.log("Text copied to clipboard");
       setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Failed to copy: ", err);
     }
@@ -58,6 +59,7 @@ export default function SessionView({ sessionId }: SessionViewProps) {
   useEffect(() => {
     const client = new Client({
       brokerURL: "ws://localhost:8000/ws",
+      reconnectDelay: 5000,
       onConnect: () => {
         console.log("websocket connected, sessionId: ", sessionId);
 
