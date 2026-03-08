@@ -16,8 +16,8 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import jakarta.annotation.PreDestroy;
 import backend.session.Session;
 import backend.session.SessionRepository;
-import backend.service.ReceiptParsingService;
 import backend.session.ParsingStatus;
+import backend.session.ReceiptParsingService;
 
 @Component
 public class ReceiptParsingWorker {

@@ -1,4 +1,4 @@
-package backend.service;
+package backend.session;
 
 import org.springframework.stereotype.Service;
 import java.util.Map;
@@ -82,9 +82,10 @@ public class ReceiptParsingService {
     }
 
     public Map<String, Map<String, Object>> parseReceipt(String imageUrl) throws InterruptedException {
+        File tempFile = null;
         try {
             URL url = URI.create(imageUrl).toURL();
-            File tempFile = File.createTempFile("receipt_", ".png");
+            tempFile = File.createTempFile("receipt_", ".png");
 
             try (InputStream in = url.openStream()) {
                 Files.copy(in, tempFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
@@ -94,13 +95,16 @@ public class ReceiptParsingService {
             String result = tesseract.doOCR(tempFile);
             System.out.println("OCR RESULT: " + result);
 
-            tempFile.delete();
             return parseResult(result);
 
         } catch (Exception e) {
             System.err.println("Error during OCR processing: " + e.getMessage());
             e.printStackTrace();
             return new LinkedHashMap<>();
+        } finally {
+            if (tempFile.exists() && tempFile != null) {
+                tempFile.delete();
+            }
         }
     }
 }

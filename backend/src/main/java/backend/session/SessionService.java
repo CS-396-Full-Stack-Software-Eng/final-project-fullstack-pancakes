@@ -33,29 +33,6 @@ public class SessionService {
         return sessionRepository.save(new Session(partySize));
     }
 
-    public Session createFakeSession(int partySize, String leaderName) {
-        Session session = new Session();
-        session.setPartySize(partySize);
-        session.setParsingStatus(ParsingStatus.ACTIVE);
-        session.setReceiptUrl("/images/sample-receipt.jpg");
-
-        try {
-            Map<String, String> users = new HashMap<>();
-            users.put(UUID.randomUUID().toString(), leaderName);
-            session.setUsers(mapper.writeValueAsString(users));
-
-            Map<String, Map<String, Object>> items = new LinkedHashMap<>();
-            items.put("item_1", Map.of("name", "Pizza", "price", 16.50, "claimedBy", ""));
-            items.put("item_2", Map.of("name", "Sprite", "price", 2.00, "claimedBy", ""));
-            session.setItems(mapper.writeValueAsString(items));
-        } catch (Exception e) {
-            throw new RuntimeException("could not serialize session data", e);
-        }
-
-        System.out.println("Hardcoded session created for: " + leaderName);
-        return sessionRepository.save(session);
-    }
-
     public Session claimItem(Long sessionId, String itemId, String userId) {
         System.out.println("user " + userId + " claimed item: " + itemId);
         Session session = sessionRepository.findById(sessionId)
@@ -90,6 +67,7 @@ public class SessionService {
             Map<String, String> users = new HashMap<>();
             users.put(UUID.randomUUID().toString(), leaderName);
             session.setUsers(mapper.writeValueAsString(users));
+            session.setReceiptUrl(image);
         } catch (Exception e) {
             throw new RuntimeException("could not serialize session users", e);
         }
