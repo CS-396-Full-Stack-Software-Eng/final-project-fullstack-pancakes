@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Client } from "@stomp/stompjs";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { ApolloError } from "@apollo/client";
@@ -28,8 +28,21 @@ interface SessionViewProps {
 }
 
 export default function SessionView({ sessionId }: SessionViewProps) {
+  const abortControllerRef = useRef<AbortController>(new AbortController());
+
+  // create a fresh controller on mount, abort on unmount
+  useEffect(() => {
+    abortControllerRef.current = new AbortController();
+    return () => abortControllerRef.current.abort();
+  }, []);
+
+  const getFetchContext = () => ({
+    fetchOptions: { signal: abortControllerRef.current.signal },
+  });
+
   const { data, loading, error } = useQuery<SessionData>(GET_SESSION, {
     variables: { id: sessionId },
+    context: getFetchContext(),
   });
   const [claimItem] = useMutation(CLAIM_ITEM);
   const [parsingStatus, setParsingStatus] = useState<string | null>(null);
@@ -43,6 +56,7 @@ export default function SessionView({ sessionId }: SessionViewProps) {
   > | null>(null);
   const [copied, setCopied] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [claimingItemId, setClaimingItemId] = useState<string | null>(null);
 
   const joinSessionUrl = `http://localhost:3000/join?sessionId=${sessionId}`;
 
@@ -119,30 +133,50 @@ export default function SessionView({ sessionId }: SessionViewProps) {
     Object.keys(users)[0] ||
     "";
 
+  const optimisticUpdate = (itemId: string, userId: string) => {
+    const updated = { ...items };
+    updated[itemId] = { ...updated[itemId], claimedBy: userId };
+    setStreamedItems(updated);
+  };
+
   const handleClaim = async (itemId: string) => {
+    if (claimingItemId) return;
+    setClaimingItemId(itemId);
     setClaimError(null);
+    const previous = { ...items };
+    optimisticUpdate(itemId, currentUserId);
     try {
       await claimItem({
         variables: { sessionId, itemId, userId: currentUserId },
+        context: getFetchContext(),
         refetchQueries: [{ query: GET_SESSION, variables: { id: sessionId } }],
       });
-      setStreamedItems(null);
     } catch (err: ApolloError) {
+      setStreamedItems(previous);
       const message = err?.graphQLErrors?.[0]?.message;
       setClaimError(message ?? "Failed to claim item.");
       setTimeout(() => setClaimError(null), 3000);
+    } finally {
+      setClaimingItemId(null);
     }
   };
 
   const handleUnclaim = async (itemId: string) => {
+    if (claimingItemId) return;
+    setClaimingItemId(itemId);
+    const previous = { ...items };
+    optimisticUpdate(itemId, "");
     try {
       await claimItem({
         variables: { sessionId, itemId, userId: "" },
+        context: getFetchContext(),
         refetchQueries: [{ query: GET_SESSION, variables: { id: sessionId } }],
       });
-      setStreamedItems(null);
     } catch (err) {
+      setStreamedItems(previous);
       console.error("Failed to unclaim item:", err);
+    } finally {
+      setClaimingItemId(null);
     }
   };
 
@@ -232,7 +266,8 @@ export default function SessionView({ sessionId }: SessionViewProps) {
                         item.claimedBy === currentUserId ? (
                           <button
                             onClick={() => handleUnclaim(key)}
-                            className="px-4 py-2 bg-gray-200 text-gray-600 font-bold rounded-xl text-sm transition-all hover:bg-gray-300"
+                            disabled={claimingItemId === key}
+                            className="px-4 py-2 bg-gray-200 text-gray-600 font-bold rounded-xl text-sm transition-all hover:bg-gray-300 disabled:opacity-50"
                           >
                             Unclaim
                           </button>
@@ -244,7 +279,8 @@ export default function SessionView({ sessionId }: SessionViewProps) {
                       ) : (
                         <button
                           onClick={() => handleClaim(key)}
-                          className="px-4 py-2 bg-amber-600 text-white font-bold rounded-xl text-sm transition-all hover:bg-amber-700"
+                          disabled={claimingItemId === key}
+                          className="px-4 py-2 bg-amber-600 text-white font-bold rounded-xl text-sm transition-all hover:bg-amber-700 disabled:opacity-50"
                         >
                           Claim
                         </button>
