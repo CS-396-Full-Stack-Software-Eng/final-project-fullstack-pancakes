@@ -36,29 +36,6 @@ public class SessionService {
         return sessionRepository.save(new Session(partySize));
     }
 
-    public Session createFakeSession(int partySize, String leaderName) {
-        Session session = new Session();
-        session.setPartySize(partySize);
-        session.setParsingStatus(ParsingStatus.ACTIVE);
-        session.setReceiptUrl("/images/sample-receipt.jpg");
-
-        try {
-            Map<String, String> users = new HashMap<>();
-            users.put(UUID.randomUUID().toString(), leaderName);
-            session.setUsers(mapper.writeValueAsString(users));
-
-            Map<String, Map<String, Object>> items = new LinkedHashMap<>();
-            items.put("item_1", Map.of("name", "Pizza", "price", 16.50, "claimedBy", ""));
-            items.put("item_2", Map.of("name", "Sprite", "price", 2.00, "claimedBy", ""));
-            session.setItems(mapper.writeValueAsString(items));
-        } catch (Exception e) {
-            throw new RuntimeException("could not serialize session data", e);
-        }
-
-        System.out.println("Hardcoded session created for: " + leaderName);
-        return sessionRepository.save(session);
-    }
-
     public Session claimItem(Long sessionId, String itemId, String userId) {
         System.out.println("user " + userId + " claimed item: " + itemId);
         Session session = sessionRepository.findById(sessionId)
@@ -67,8 +44,8 @@ public class SessionService {
         try {
             Map<String, Map<String, Object>> items = mapper.readValue(
                     session.getItems(),
-                    new TypeReference<Map<String, Map<String, Object>>>() {}
-            );
+                    new TypeReference<Map<String, Map<String, Object>>>() {
+                    });
 
             if (!items.containsKey(itemId)) {
                 throw new RuntimeException("item not found");
@@ -114,11 +91,12 @@ public class SessionService {
         System.out.println(leaderName + " uploaded receipt");
         Session session = new Session(partySize);
         session.setParsingStatus(ParsingStatus.INITIALIZING);
-    
+
         try {
             Map<String, String> users = new HashMap<>();
             users.put(UUID.randomUUID().toString(), leaderName);
             session.setUsers(mapper.writeValueAsString(users));
+            session.setReceiptUrl(image);
         } catch (Exception e) {
             throw new RuntimeException("could not serialize session users", e);
         }
@@ -129,14 +107,14 @@ public class SessionService {
         long timestamp = System.currentTimeMillis();
 
         ReceiptParsingEvent event = ReceiptParsingEvent.newBuilder()
-            .setEventId(eventId)
-            .setSessionId(String.valueOf(session.getId()))
-            .setImageUrl(image)
-            .setStatus("INITIALIZING")
-            .setCreatedAt(timestamp)
-            .build();
-            
-        redis.opsForList().leftPush(RECEIPT_PARSING_EVENT_QUEUE, event.toByteArray()); 
+                .setEventId(eventId)
+                .setSessionId(String.valueOf(session.getId()))
+                .setImageUrl(image)
+                .setStatus("INITIALIZING")
+                .setCreatedAt(timestamp)
+                .build();
+
+        redis.opsForList().leftPush(RECEIPT_PARSING_EVENT_QUEUE, event.toByteArray());
 
         return session;
     }
