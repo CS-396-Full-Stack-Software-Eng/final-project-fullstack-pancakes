@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Client } from "@stomp/stompjs";
 import { useQuery, useMutation } from "@apollo/client/react";
-import { ApolloError } from "@apollo/client";
 import { GET_SESSION } from "@/lib/graphql/queries";
 import { CLAIM_ITEM } from "@/lib/graphql/mutations";
 import Fuse from "fuse.js";
@@ -30,8 +29,21 @@ interface SessionViewProps {
 }
 
 export default function SessionView({ sessionId }: SessionViewProps) {
+  const abortControllerRef = useRef<AbortController>(new AbortController());
+
+  // create a fresh controller on mount, abort on unmount
+  useEffect(() => {
+    abortControllerRef.current = new AbortController();
+    return () => abortControllerRef.current.abort();
+  }, []);
+
+  const getFetchContext = () => ({
+    fetchOptions: { signal: abortControllerRef.current.signal },
+  });
+
   const { data, loading, error } = useQuery<SessionData>(GET_SESSION, {
     variables: { id: sessionId },
+    context: getFetchContext(),
   });
   const [claimItem] = useMutation(CLAIM_ITEM);
   const [parsingStatus, setParsingStatus] = useState<string | null>(null);
@@ -45,16 +57,18 @@ export default function SessionView({ sessionId }: SessionViewProps) {
   > | null>(null);
   const [copied, setCopied] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
+  const [claimingItemId, setClaimingItemId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
   const joinSessionUrl = `http://localhost:3000/join?sessionId=${sessionId}`;
 
-  // copy link
+  // copy to clipboard
   const copyLinkToClipboard = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(joinSessionUrl);
       console.log("Text copied to clipboard");
       setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error("Failed to copy: ", err);
     }
@@ -62,6 +76,7 @@ export default function SessionView({ sessionId }: SessionViewProps) {
   useEffect(() => {
     const client = new Client({
       brokerURL: "ws://localhost:8000/ws",
+      reconnectDelay: 5000,
       onConnect: () => {
         console.log("websocket connected, sessionId: ", sessionId);
 
@@ -114,56 +129,57 @@ export default function SessionView({ sessionId }: SessionViewProps) {
   const users: Record<string, string> =
     streamedUsers ?? (session.users ? JSON.parse(session.users) : {});
 
-
   // create item entries for Fuse.js
   const itemEntries = Object.entries(items);
   // only items that get at least a 0.4 match score
   // fuse searches on index 1 (item) then by name
   const filteredEntries = searchQuery
-    ? (()=> {
-      // i had to manually add alias layer/mapping of coke <=> coca-cola
-      const search_mappings: Record<string, string> = {
-      'coca cola': 'coke',
-      'coca-cola': 'coke',
-      'coca-': 'coke',
-      'coca-c': 'coke',
-      'coca-co': 'coke',
-      'coca-col': 'coke',
-      'cola': 'coke',
-      'coca': 'coke',
-      'coke': 'coke',
-      };
-      const query = searchQuery.toLowerCase().trim();
-      const searchFor = search_mappings[query] || query;
+    ? (() => {
+        // i had to manually add alias layer/mapping of coke <=> coca-cola
+        const search_mappings: Record<string, string> = {
+          "coca cola": "coke",
+          "coca-cola": "coke",
+          "coca-": "coke",
+          "coca-c": "coke",
+          "coca-co": "coke",
+          "coca-col": "coke",
+          cola: "coke",
+          coca: "coke",
+          coke: "coke",
+        };
+        const query = searchQuery.toLowerCase().trim();
+        const searchFor = search_mappings[query] || query;
 
-      let searchMetaphone = '';
-      try{
-        searchMetaphone = metaphone(searchFor);
-      } catch (err){
-        console.error("Metaphone failed for search item:", searchFor, err)
-      }
-      
-      return new Fuse(itemEntries, {
-        keys: ["1.name", {
-          name: "1.name", 
-            getFn: (obj) => {
-              const name = obj[1]?.name || "";
-              try{
-                // converts item name to phonetic code for fuzzy matching
-                return metaphone(name.toLowerCase());
-              } catch(err){
-                  console.error('Metaphone failed for item:', name, err);
-                return name.toLowerCase(); // goes to original name
-              }
-            }
-         }],
-        threshold: 0.4,
-        includeScore: true,
-      })
-        .search(searchFor)
-        .map((r) => r.item)
+        let searchMetaphone = "";
+        try {
+          searchMetaphone = metaphone(searchFor);
+        } catch (err) {
+          console.error("Metaphone failed for search item:", searchFor, err);
+        }
 
-    })()
+        return new Fuse(itemEntries, {
+          keys: [
+            "1.name",
+            {
+              name: "1.name",
+              getFn: (obj) => {
+                const name = obj[1]?.name || "";
+                try {
+                  // converts item name to phonetic code for fuzzy matching
+                  return metaphone(name.toLowerCase());
+                } catch (err) {
+                  console.error("Metaphone failed for item:", name, err);
+                  return name.toLowerCase(); // goes to original name
+                }
+              },
+            },
+          ],
+          threshold: 0.4,
+          includeScore: true,
+        })
+          .search(searchFor)
+          .map((r) => r.item);
+      })()
     : itemEntries;
   console.log(filteredEntries);
 
@@ -174,30 +190,47 @@ export default function SessionView({ sessionId }: SessionViewProps) {
     Object.keys(users)[0] ||
     "";
 
+  const optimisticUpdate = (itemId: string, userId: string) => {
+    const updated = { ...items };
+    updated[itemId] = { ...updated[itemId], claimedBy: userId };
+    setStreamedItems(updated);
+  };
+
   const handleClaim = async (itemId: string) => {
+    if (claimingItemId) return;
+    setClaimingItemId(itemId);
     setClaimError(null);
+    const previous = { ...items };
+    optimisticUpdate(itemId, currentUserId);
     try {
       await claimItem({
         variables: { sessionId, itemId, userId: currentUserId },
-        refetchQueries: [{ query: GET_SESSION, variables: { id: sessionId } }],
+        context: getFetchContext(),
       });
-      setStreamedItems(null);
-    } catch (err: ApolloError) {
-      const message = err?.graphQLErrors?.[0]?.message;
+    } catch (err) {
+      const apolloErr = err as { graphQLErrors?: { message: string }[] };
+      const message = apolloErr?.graphQLErrors?.[0]?.message;
       setClaimError(message ?? "Failed to claim item.");
       setTimeout(() => setClaimError(null), 3000);
+    } finally {
+      setClaimingItemId(null);
     }
   };
 
   const handleUnclaim = async (itemId: string) => {
+    if (claimingItemId) return;
+    setClaimingItemId(itemId);
+    const previous = { ...items };
+    optimisticUpdate(itemId, "");
     try {
       await claimItem({
         variables: { sessionId, itemId, userId: "" },
-        refetchQueries: [{ query: GET_SESSION, variables: { id: sessionId } }],
+        context: getFetchContext(),
       });
-      setStreamedItems(null);
     } catch (err) {
       console.error("Failed to unclaim item:", err);
+    } finally {
+      setClaimingItemId(null);
     }
   };
 
@@ -296,7 +329,8 @@ export default function SessionView({ sessionId }: SessionViewProps) {
                         item.claimedBy === currentUserId ? (
                           <button
                             onClick={() => handleUnclaim(key)}
-                            className="px-4 py-2 bg-gray-200 text-gray-600 font-bold rounded-xl text-sm transition-all hover:bg-gray-300"
+                            disabled={claimingItemId === key}
+                            className="px-4 py-2 bg-gray-200 text-gray-600 font-bold rounded-xl text-sm transition-all hover:bg-gray-300 disabled:opacity-50"
                           >
                             Unclaim
                           </button>
@@ -308,7 +342,8 @@ export default function SessionView({ sessionId }: SessionViewProps) {
                       ) : (
                         <button
                           onClick={() => handleClaim(key)}
-                          className="px-4 py-2 bg-amber-600 text-white font-bold rounded-xl text-sm transition-all hover:bg-amber-700"
+                          disabled={claimingItemId === key}
+                          className="px-4 py-2 bg-amber-600 text-white font-bold rounded-xl text-sm transition-all hover:bg-amber-700 disabled:opacity-50"
                         >
                           Claim
                         </button>

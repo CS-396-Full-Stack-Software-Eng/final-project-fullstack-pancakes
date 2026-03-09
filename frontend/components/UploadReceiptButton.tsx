@@ -1,5 +1,4 @@
 "use client";
-
 import { useMutation } from "@apollo/client/react";
 import { useRouter } from "next/navigation";
 import { UPLOAD_RECEIPT } from "@/lib/graphql/mutations";
@@ -15,21 +14,27 @@ interface UploadReceiptData {
 interface StartSessionProps {
   partySize: string;
   leaderName: string;
+  imageURL: string;
 }
 
 export default function UploadReceiptButton({
   partySize,
   leaderName,
+  imageURL,
 }: StartSessionProps) {
   const router = useRouter();
   const [uploadReceipt, { loading }] =
     useMutation<UploadReceiptData>(UPLOAD_RECEIPT);
 
   const handleClick = async () => {
+    if (!imageURL) {
+      console.error("Please upload a file.");
+    }
+
     try {
       const { data } = await uploadReceipt({
         variables: {
-          image: "fake-receipt-placeholder",
+          image: imageURL,
           partySize: parseInt(partySize, 10),
           leaderName,
         },
