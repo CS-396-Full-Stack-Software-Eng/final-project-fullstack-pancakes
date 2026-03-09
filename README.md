@@ -106,7 +106,7 @@ Next, navigate to the `backend` folder and start up everything on the backend:
 2) Run the following to make sure you're dependencies and target folder are up to date based on any changes: `mvn clean install`.
 3) Open Docker Desktop on your machine.
 4) Run the database: `npx supabase start`.
-5) Start up the Redis Message Queue: `docker redis start`.
+5) Start up the Redis Message Queue: `docker start redis`.
 6) Run the server: `mvn spring-boot:run`.
 
 In a different terminal, navigate to the `frontend` folder to start up the frontend:
@@ -115,7 +115,7 @@ In a different terminal, navigate to the `frontend` folder to start up the front
 
 To stop local development:
 - To stop running the database, you will need to execute `npx supabase stop` in the `backend` directory.
-- To stop running the Redis Message queue, you will need to execute `docker redis stop` in the `backend` directory.
+- To stop running the Redis Message queue, you will need to execute `docker stop redis` in the `backend` directory.
 - You can simply use `CTRL + C` to stop the server and client app in the terminals they're running in.
 
 ## Troubleshooting Supabase Migration History Mismatches

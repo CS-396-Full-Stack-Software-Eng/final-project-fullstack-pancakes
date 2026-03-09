@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.example.proto.ReceiptParsingEvent;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.util.Optional;
 import java.util.LinkedHashMap;
@@ -18,10 +19,12 @@ public class SessionService {
     private final SessionRepository sessionRepository;
     private final ObjectMapper mapper = new ObjectMapper();
     private final RedisTemplate<String, byte[]> redis;
+    private final SimpMessagingTemplate socket;
 
-    public SessionService(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis) {
+    public SessionService(SessionRepository sessionRepository, RedisTemplate<String, byte[]> redis, SimpMessagingTemplate socket) {
         this.sessionRepository = sessionRepository;
         this.redis = redis;
+        this.socket = socket;
     }
 
     public Optional<Session> getSessionById(Long sessionId) {
@@ -49,11 +52,37 @@ public class SessionService {
             }
 
             Map<String, Object> item = items.get(itemId);
-            item.put("claimedBy", userId);
 
+            // check if item is already claimed by someone else and throw error if so
+            // allow unclaiming (userId is empty)
+            if (item.get("claimedBy") != null && !item.get("claimedBy").toString().isEmpty()
+                    && userId != null && !userId.isEmpty()) {
+                throw new RuntimeException("item already claimed");
+            }
+
+            // if not, then try to claim the item, and throw error if receive one back (via catch logic)
+            item.put("claimedBy", userId);
             session.setItems(mapper.writeValueAsString(items));
-            return sessionRepository.save(session);
+            Session savedSession = sessionRepository.save(session);
+
+            // broadcast item_claim event
+            socket.convertAndSend("/topic/session/" + sessionId, (Object) Map.of(
+                "status", "ITEM_CLAIMED",
+                "sessionId", String.valueOf(sessionId),
+                "items", items
+            ));
+
+            return savedSession;
         } catch (Exception e) {
+            // go through chain of errors to see if specifically because item was already claimed
+            Throwable cause = e;
+            while (cause != null) {
+                String errorMessage = cause.getMessage();
+                if (errorMessage != null && errorMessage.contains("Two users cannot claim the same item")) {
+                    throw new RuntimeException("item already claimed", e);
+                }
+                cause = cause.getCause();
+            }
             throw new RuntimeException("could not claim item", e);
         }
     }
@@ -104,7 +133,19 @@ public class SessionService {
             String userId = UUID.randomUUID().toString();
             users.put(userId, name);
             session.setUsers(mapper.writeValueAsString(users));
+
             Session savedSession = sessionRepository.save(session);
+
+            // also broadcast message so the other users' frontends can update,
+            // account for new user.
+            // ! NOTE: this was added b/c when user B would join session, they would see both users A and B,
+            // ! but user A would not see the new user B
+            socket.convertAndSend("/topic/session/" + sessionId, (Object) Map.of(
+                "status", "USER_JOINED",
+                "sessionId", String.valueOf(sessionId),
+                "users", users
+            ));
+            
             return new JoinSessionResult(userId, savedSession);
         } catch (Exception e) {
             throw new RuntimeException("could not add user to session", e);

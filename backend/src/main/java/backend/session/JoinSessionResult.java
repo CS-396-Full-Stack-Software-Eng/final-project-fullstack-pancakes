@@ -1,14 +1,14 @@
 package backend.session;
 
 public class JoinSessionResult {
-    private String userId;
+    private String newUserId; // match schema
     private Session session;
 
     public JoinSessionResult(String userId, Session session) {
-        this.userId = userId;
+        this.newUserId = userId;
         this.session = session;
     }
 
-    public String getUserId() { return userId; }
+    public String getNewUserId() { return newUserId; }
     public Session getSession() { return session; }
 }

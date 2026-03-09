@@ -44,7 +44,7 @@ export default function UploadReceiptButton({
         const users = JSON.parse(data.uploadReceipt.users);
         const leaderId = Object.keys(users)[0];
         localStorage.setItem(`userId_${sessionId}`, leaderId);
-        
+
         router.push(`/createSession?id=${sessionId}`);
       }
     } catch (err) {
