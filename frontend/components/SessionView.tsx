@@ -5,6 +5,8 @@ import { Client } from "@stomp/stompjs";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { GET_SESSION } from "@/lib/graphql/queries";
 import { CLAIM_ITEM } from "@/lib/graphql/mutations";
+import Fuse from "fuse.js";
+import { metaphone } from "metaphone";
 
 interface SessionData {
   getSessionById: {
@@ -56,6 +58,7 @@ export default function SessionView({ sessionId }: SessionViewProps) {
   const [copied, setCopied] = useState(false);
   const [claimError, setClaimError] = useState<string | null>(null);
   const [claimingItemId, setClaimingItemId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const joinSessionUrl = `http://localhost:3000/join?sessionId=${sessionId}`;
 
@@ -126,6 +129,60 @@ export default function SessionView({ sessionId }: SessionViewProps) {
   const users: Record<string, string> =
     streamedUsers ?? (session.users ? JSON.parse(session.users) : {});
 
+  // create item entries for Fuse.js
+  const itemEntries = Object.entries(items);
+  // only items that get at least a 0.4 match score
+  // fuse searches on index 1 (item) then by name
+  const filteredEntries = searchQuery
+    ? (() => {
+        // i had to manually add alias layer/mapping of coke <=> coca-cola
+        const search_mappings: Record<string, string> = {
+          "coca cola": "coke",
+          "coca-cola": "coke",
+          "coca-": "coke",
+          "coca-c": "coke",
+          "coca-co": "coke",
+          "coca-col": "coke",
+          cola: "coke",
+          coca: "coke",
+          coke: "coke",
+        };
+        const query = searchQuery.toLowerCase().trim();
+        const searchFor = search_mappings[query] || query;
+
+        let searchMetaphone = "";
+        try {
+          searchMetaphone = metaphone(searchFor);
+        } catch (err) {
+          console.error("Metaphone failed for search item:", searchFor, err);
+        }
+
+        return new Fuse(itemEntries, {
+          keys: [
+            "1.name",
+            {
+              name: "1.name",
+              getFn: (obj) => {
+                const name = obj[1]?.name || "";
+                try {
+                  // converts item name to phonetic code for fuzzy matching
+                  return metaphone(name.toLowerCase());
+                } catch (err) {
+                  console.error("Metaphone failed for item:", name, err);
+                  return name.toLowerCase(); // goes to original name
+                }
+              },
+            },
+          ],
+          threshold: 0.4,
+          includeScore: true,
+        })
+          .search(searchFor)
+          .map((r) => r.item);
+      })()
+    : itemEntries;
+  console.log(filteredEntries);
+
   const currentUserId =
     (typeof window !== "undefined"
       ? localStorage.getItem(`userId_${sessionId}`)
@@ -151,7 +208,6 @@ export default function SessionView({ sessionId }: SessionViewProps) {
         context: getFetchContext(),
       });
     } catch (err) {
-      setStreamedItems(previous);
       const apolloErr = err as { graphQLErrors?: { message: string }[] };
       const message = apolloErr?.graphQLErrors?.[0]?.message;
       setClaimError(message ?? "Failed to claim item.");
@@ -172,7 +228,6 @@ export default function SessionView({ sessionId }: SessionViewProps) {
         context: getFetchContext(),
       });
     } catch (err) {
-      setStreamedItems(previous);
       console.error("Failed to unclaim item:", err);
     } finally {
       setClaimingItemId(null);
@@ -218,6 +273,13 @@ export default function SessionView({ sessionId }: SessionViewProps) {
 
         <section>
           <h2 className="text-sm font-medium text-gray-500 mb-3">Items</h2>
+          <input
+            type="text"
+            placeholder="Search items..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full border border-gray-200 rounded-xl px-4 py-3 mb-4 text-gray-900"
+          />
 
           {claimError && (
             <div className="mb-3 px-4 py-2 bg-red-100 text-red-700 rounded-xl text-sm font-medium">
@@ -244,11 +306,13 @@ export default function SessionView({ sessionId }: SessionViewProps) {
 
           {parsingStatus !== "PARSING" && parsingStatus !== "FAILURE" && (
             <>
-              {Object.keys(items).length === 0 ? (
-                <p className="text-gray-400 text-center py-4">No items yet.</p>
+              {filteredEntries.length === 0 ? (
+                <p className="text-gray-400 text-center py-4">
+                  {searchQuery ? "No matching items." : "No items yet."}
+                </p>
               ) : (
                 <ul className="space-y-3">
-                  {Object.entries(items).map(([key, item]) => (
+                  {filteredEntries.map(([key, item]) => (
                     <li
                       key={key}
                       className="flex items-center justify-between p-4 rounded-2xl border-2 border-gray-100"
