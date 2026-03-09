@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Client } from "@stomp/stompjs";
 import { useQuery, useMutation } from "@apollo/client/react";
-import { ApolloError } from "@apollo/client";
 import { GET_SESSION } from "@/lib/graphql/queries";
 import { CLAIM_ITEM } from "@/lib/graphql/mutations";
 
@@ -149,11 +148,11 @@ export default function SessionView({ sessionId }: SessionViewProps) {
       await claimItem({
         variables: { sessionId, itemId, userId: currentUserId },
         context: getFetchContext(),
-        refetchQueries: [{ query: GET_SESSION, variables: { id: sessionId } }],
       });
-    } catch (err: ApolloError) {
+    } catch (err) {
       setStreamedItems(previous);
-      const message = err?.graphQLErrors?.[0]?.message;
+      const apolloErr = err as { graphQLErrors?: { message: string }[] };
+      const message = apolloErr?.graphQLErrors?.[0]?.message;
       setClaimError(message ?? "Failed to claim item.");
       setTimeout(() => setClaimError(null), 3000);
     } finally {
@@ -170,7 +169,6 @@ export default function SessionView({ sessionId }: SessionViewProps) {
       await claimItem({
         variables: { sessionId, itemId, userId: "" },
         context: getFetchContext(),
-        refetchQueries: [{ query: GET_SESSION, variables: { id: sessionId } }],
       });
     } catch (err) {
       setStreamedItems(previous);
